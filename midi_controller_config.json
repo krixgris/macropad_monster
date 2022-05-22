@@ -1,0 +1,173 @@
+{
+	"controller": 
+	{
+	"1":
+		{
+			"1":
+				{
+					"cc":1,
+					"on_color":"red",
+					"on_color_hex":"0xFFFFFF",
+					"off_color":"off",
+					"toggle":1,
+					"max_value":127,
+					"min_value":0,
+					"key_no":1,
+					"description":"Key 1"
+				},
+			"2":
+				{
+					"cc":2,
+					"on_color":"green",
+					"off_color":"",
+					"off_color_hex":"0x001100",
+					"toggle":1,
+					"max_value":127,
+					"min_value":0,
+					"key_no":2,
+					"description":"Key 2"
+				},
+			"3":
+				{
+					"cc":3,
+					"on_color":"red",
+					"off_color":"",
+					"off_color_hex":"0x110000",
+					"toggle":1,
+					"max_value":127,
+					"min_value":0,
+					"key_no":3,
+					"description":"Key 3"
+				},
+			"4":
+				{
+					"cc":4,
+					"on_color":"red",
+					"off_color":"off",
+					"toggle":1,
+					"max_value":127,
+					"min_value":0,
+					"key_no":4,
+					"description":"Key 4"
+				},
+			"5":
+				{
+					"cc":5,
+					"on_color":"red",
+					"off_color":"off",
+					"toggle":1,
+					"max_value":127,
+					"min_value":0,
+					"key_no":5,
+					"description":"Key 5"
+				},
+
+			"6":
+			{
+				"cc":6,
+				"on_color":"red",
+				"off_color":"off",
+				"toggle":1,
+				"max_value":127,
+				"min_value":0,
+				"key_no":6,
+				"description":"Key 6"
+			},
+			"7":
+				{
+					"cc":7,
+					"on_color":"red",
+					"off_color":"off",
+					"toggle":1,
+					"max_value":127,
+					"min_value":0,
+					"key_no":7,
+					"description":"Key 7"
+				},
+
+			"8":
+			{
+				"cc":8,
+				"on_color":"green",
+				"off_color":"off",
+				"toggle":1,
+				"max_value":127,
+				"min_value":0,
+				"key_no":8,
+				"description":"Key 8"
+			},
+
+			"9":
+				{
+					"cc":9,
+					"on_color":"red",
+					"off_color":"off",
+					"toggle":1,
+					"max_value":127,
+					"min_value":0,
+					"key_no":9,
+					"description":"Key 9"
+				},
+			"10":
+			{
+				"cc":10,
+				"on_color":"",
+				"on_color_hex":"0x0011FF",
+				"off_color":"",
+				"off_color_hex":"0x000022",
+				"toggle":1,
+				"max_value":127,
+				"min_value":0,
+				"key_no":10,
+				"description":"Key 10"
+			},
+			"11":
+				{
+					"cc":11,
+					"on_color":"white",
+					"off_color":"",
+					"off_color_hex":"0xFFFFFF",
+					"toggle":1,
+					"max_value":127,
+					"min_value":0,
+					"key_no":11,
+					"description":"Key 11"
+				},
+			"12":
+			{
+				"cc":12,
+				"on_color":"lime",
+				"off_color":"",
+				"off_color_hex":"0x004400",
+				"toggle":1,
+				"max_value":127,
+				"min_value":0,
+				"key_no":12,
+				"description":"Key 12"
+			},
+			"enc":
+			{
+				"cc":13,
+				"on_color":"purple",
+				"off_color":"off",
+				"toggle":0,
+				"max_value":127,
+				"min_value":0,
+				"key_no":13,
+				"description":"Encoder turn"
+			},
+			"enc_click":
+			{
+				"cc":14,
+				"on_color":"purple",
+				"off_color":"off",
+				"toggle":1,
+				"max_value":127,
+				"min_value":0,
+				"key_no":14,
+				"description":"Encoder click"
+			}
+		}
+		
+	}
+}
