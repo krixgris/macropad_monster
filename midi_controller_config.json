@@ -7,8 +7,8 @@
 				{
 					"cc":1,
 					"on_color":"red",
-					"on_color_hex":"0xFFFFFF",
 					"off_color":"off",
+					"off_color_hex":"0x111111",
 					"toggle":1,
 					"max_value":127,
 					"min_value":0,
@@ -43,7 +43,8 @@
 				{
 					"cc":4,
 					"on_color":"red",
-					"off_color":"off",
+					"off_color":"",
+					"off_color_hex":"0x110000",
 					"toggle":1,
 					"max_value":127,
 					"min_value":0,
@@ -53,9 +54,11 @@
 			"5":
 				{
 					"cc":5,
-					"on_color":"red",
-					"off_color":"off",
-					"toggle":1,
+					"on_color":"",
+					"on_color_hex":"0x111111",
+					"off_color":"",
+					"off_color_hex":"0x111111",
+					"toggle":0,
 					"max_value":127,
 					"min_value":0,
 					"key_no":5,
@@ -65,8 +68,9 @@
 			"6":
 			{
 				"cc":6,
-				"on_color":"red",
-				"off_color":"off",
+				"on_color":"yellow",
+				"off_color":"",
+				"off_color_hex":"0x221800",
 				"toggle":1,
 				"max_value":127,
 				"min_value":0,
@@ -76,9 +80,11 @@
 			"7":
 				{
 					"cc":7,
-					"on_color":"red",
-					"off_color":"off",
-					"toggle":1,
+					"on_color":"",
+					"on_color_hex":"0xFFC0FF",
+					"off_color":"",
+					"off_color_hex":"0x111111",
+					"toggle":0,
 					"max_value":127,
 					"min_value":0,
 					"key_no":7,
@@ -88,9 +94,11 @@
 			"8":
 			{
 				"cc":8,
-				"on_color":"green",
-				"off_color":"off",
-				"toggle":1,
+				"on_color":"",
+				"on_color_hex":"0x111111",
+				"off_color":"",
+				"off_color_hex":"0x111111",
+				"toggle":0,
 				"max_value":127,
 				"min_value":0,
 				"key_no":8,
@@ -100,9 +108,11 @@
 			"9":
 				{
 					"cc":9,
-					"on_color":"red",
-					"off_color":"off",
-					"toggle":1,
+					"on_color":"",
+					"on_color_hex":"0xFFC0FF",
+					"off_color":"",
+					"off_color_hex":"0x111111",
+					"toggle":0,
 					"max_value":127,
 					"min_value":0,
 					"key_no":9,
@@ -124,7 +134,8 @@
 			"11":
 				{
 					"cc":11,
-					"on_color":"white",
+					"on_color":"",
+					"on_color_hex":"0x555555",
 					"off_color":"",
 					"off_color_hex":"0xFFFFFF",
 					"toggle":1,

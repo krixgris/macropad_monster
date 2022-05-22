@@ -17,15 +17,14 @@ class MidiConfig:
 	def __init__(self, config):
 		self.cc = config["cc"]
 		self.key_no = config["key_no"]
+		self.key = config["key_no"]-1
 		self.description = config["description"]
 		self.on_color = COLORS.get(config["on_color"],int(config.get("on_color_hex",0xFF0000)))
 		self.off_color = COLORS.get(config["off_color"],int(config.get("off_color_hex",0xFFFFFF)))
-
-		##self.off_color = COLORS.get(config["off_color"],0x000000)
 		self.max_value = config["max_value"]
 		self.min_value = config["min_value"]
 		self.toggle = config["toggle"]
-		self.current_value = 0
+		self.current_value = 127
 	def __repr__(self):
 		return (f"({self.description}: cc={self.cc}, max={self.max_value}, min={self.min_value})")
 	def str(self):
@@ -33,9 +32,15 @@ class MidiConfig:
 	def msg(self,value=None):
 		if(value is None):
 			value = self.current_value
-		return_value = value
+		else:
+			self.current_value = value
 		if(self.toggle==1):
-			return_value = 127 if value == 0 else 0
+			self.current_value = 127 if value == 0 else 0
+		if(self.current_value>self.max_value):
+			self.current_value = self.max_value
+		if(self.current_value<self.min_value):
+			self.current_value = self.min_value
+		return_value = self.current_value
 		return ControlChange(self.cc,return_value)
 
 class MacroPadMidi:
@@ -47,7 +52,7 @@ class MacroPadMidi:
 		self.encoder_click = 0
 	
 	def __repr__(self):
-		print(f"keys={self.keys}, encoder={self.encoder}, enc_click={self.encoder_click}")
+		return f"keys={self.keys}, encoder={self.encoder}, enc_click={self.encoder_click}"
 
 midi_keys = list()
 midi_encoder = None
@@ -78,13 +83,9 @@ midi_encoder_click = MidiConfig(conf['controller']['1']['enc_click'])
 
 midi_cc_lookup = dict()
 for k in midi_keys:
-	midi_cc_lookup[k.cc] = k.key_no
-
-CC_NUM = 74  # select your CC number
+	midi_cc_lookup[k.cc] = k.key
 
 start_time = time.monotonic()
-
-tones = [196, 220, 246, 262, 294, 330, 349, 392, 440, 494, 523, 587]
 
 macropad = MacroPad(rotation=0)  # create the macropad object, rotate orientation
 macropad.display.auto_refresh = False  # avoid lag
@@ -92,11 +93,11 @@ macropad.display.auto_refresh = False  # avoid lag
 # --- Pixel setup --- #
 key_color = colorwheel(130)  # fill with cyan to start
 
-macropad.pixels.brightness = 0.25
+macropad.pixels.brightness = 0.15
 
 # --- MIDI variables ---
 mode = 0
-mode_text = ["Patch", ("CC #%s" % (CC_NUM)), "Pitch Bend"]
+
 midi_values = [0, 16, 8]  # bank, cc value, pitch
 # Chromatic scale starting with C3 as bottom left keyswitch (or use any notes you like)
 midi_notes = [
@@ -137,6 +138,13 @@ def loop_numbers(iterations,reverse:bool = 0):
 		grid_numbers.number(macropad,n,fg_color = random.randint(0,5), bg_color=120)
 		time.sleep(0.2)
 
+
+def init_colors():
+	for k in midi_keys:
+		macropad.pixels[k.key] = k.off_color 
+
+init_colors()
+
 while True:
 	loop_start_time = time.monotonic()
 	#   Block for handling things asynchronous..kind of
@@ -168,13 +176,15 @@ while True:
 				pad_midi_values.encoder_click = midi_event.value
 			# Keys
 			if midi_event.control in (k.cc for k in midi_keys ):
-				key = midi_cc_lookup[midi_event.control]-1
+				key = midi_cc_lookup[midi_event.control]
 				pad_midi_values.keys[key] = midi_event.value
+				midi_keys[key].current_value = midi_event.value
 				key_on = True if midi_event.value > 0 else False
 				event_color = midi_keys[key].on_color
 				event_color = event_color if key_on else midi_keys[key].off_color
 				k_color = event_color
 				macropad.pixels[key] = k_color
+				#print(f"{midi_keys[key].cc=},{midi_keys[key].current_value=}")
 
 
 	while macropad.keys.events:  # check for key press or release
@@ -183,11 +193,19 @@ while True:
 		if key_event:
 			if key_event.pressed:
 				key = key_event.key_number
-				macropad.midi.send(midi_keys[key].msg(pad_midi_values.keys[key]))
-				text_lines[1].text = "NoteOn:{}".format(midi_notes[key])
+				# macropad.midi.send(midi_keys[key].msg(pad_midi_values.keys[key]))
+				if(midi_keys[key].toggle == 0):
+					macropad.midi.send(midi_keys[key].msg(127))
+				else:
+					macropad.midi.send(midi_keys[key].msg())
+				macropad.pixels[key] = midi_keys[key].on_color 
+				#text_lines[1].text = "NoteOn:{}".format(midi_notes[key])
 
 			if key_event.released:
 				key = key_event.key_number
+				if(midi_keys[key].toggle == 0):
+					macropad.midi.send(midi_keys[key].msg(0))
+					macropad.pixels[key] = midi_keys[key].off_color 
 
 	macropad.encoder_switch_debounced.update()  # check the knob switch for press or release
 	if macropad.encoder_switch_debounced.pressed:
