@@ -1,5 +1,6 @@
 # rgb_multiply.py
 def byte_mult(b:int,multiplier:float)->int:
+	# caps result to between 0-255
 	return max(min(int(b*multiplier),255),0)
 
 def rgb_mult(color_rgb:int,intensity_factor:float=1.0):
