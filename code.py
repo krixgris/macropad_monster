@@ -18,7 +18,7 @@ import rgb_multiply
 
 
 MACROPAD_BRIGHTNESS = 0.15
-MACROPAD_SLEEP_KEYS = 10.0
+MACROPAD_SLEEP_KEYS = 60.0
 
 macropad_sleep_keys = False
 
@@ -256,7 +256,7 @@ while True:
 			if midi_event.control == midi_encoder.cc:
 				pad_midi_values.encoder = midi_event.value
 				midi_encoder.current_value = midi_event.value
-				last_knob_pos = macropad.encoder
+				#last_knob_pos = macropad.encoder
 				#macropad.pixels[0] = rgb_multiply.rgb_mult(0xFF00CF,midi_event.value*1.0/127.0)
 				
 			# Encoder click CC
@@ -326,6 +326,7 @@ while True:
 		display_rows.rows[1] = f"{MODES[macropad_mode-1]}"
 		set_screen(macropad,text_lines,display_rows)
 		load_config(conf,midi_keys,midi_cc_lookup,macropad_mode)
+		init_colors()
 
 	if macropad.encoder_switch_debounced.released:
 		loop_last_action = time.monotonic()
