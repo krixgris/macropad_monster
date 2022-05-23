@@ -1,4 +1,4 @@
-# rgb_mult
+# rgb_multiply.py
 def byte_mult(b:int,multiplier:float)->int:
 	return max(min(int(b*multiplier),255),0)
 
