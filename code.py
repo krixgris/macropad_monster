@@ -1,17 +1,20 @@
 # code.py
 from adafruit_macropad import MacroPad
-from rainbowio import colorwheel
 from adafruit_midi.midi_message import note_parser
 from adafruit_midi.control_change import ControlChange
 from adafruit_midi.note_off import NoteOff
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.pitch_bend import PitchBend
+from rainbowio import colorwheel
+
+import json
 import time
 import random
+
 import grid_numbers
 from colors import COLORS
 from midi_notes import MIDI_NOTES
-import json
+
 
 MACROPAD_BRIGHTNESS = 0.15
 
