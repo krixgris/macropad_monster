@@ -18,6 +18,9 @@ from midi_notes import MIDI_NOTES
 
 MACROPAD_BRIGHTNESS = 0.15
 
+#
+# Name change + move it out to separate py-file + rethink some functionality to be more general and also use for normal keypresses?
+# Should be able to be a generic handler of the macropad perhaps..
 class MidiConfig:
 	def __init__(self, config):
 		self.cc = config["cc"]
@@ -69,7 +72,7 @@ def load_midi_config(midi_list, config_list):
 	for c in config_list:
 		midi_list.append(MidiConfig(c))
 
-
+# these can and should all be replaced by the midi_keys, midi_encoder, midi_encoder_click
 pad_midi_values = MacroPadMidi()
 
 MIDI_CONFIG_JSON = "midi_controller_config.json"
@@ -199,10 +202,12 @@ while True:
 			# Encoder CC 
 			if midi_event.control == midi_encoder.cc:
 				pad_midi_values.encoder = midi_event.value
+				midi_encoder.current_value = midi_event.value
 				last_knob_pos = macropad.encoder
 			# Encoder click CC
 			if midi_event.control == midi_encoder_click.cc:
 				pad_midi_values.encoder_click = midi_event.value
+				midi_encoder_click.current_value = midi_event.value
 			# Keys CC
 			if midi_event.control in (k.cc for k in midi_keys ):
 				key = midi_cc_lookup[midi_event.control]
@@ -273,10 +278,13 @@ while True:
 				pass
 			else:
 				pad_midi_values.encoder += knob_delta
+				midi_encoder.current_value += knob_delta
 				if(pad_midi_values.encoder>127):
 					pad_midi_values.encoder = 127
+					midi_encoder.current_value = 127
 				elif(pad_midi_values.encoder<0):
 					pad_midi_values.encoder = 0
+					midi_encoder.current_value = 0
 				macropad.midi.send(midi_encoder.msg(pad_midi_values.encoder))
 		last_knob_pos = macropad.encoder
 	################################################################
