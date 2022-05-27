@@ -18,15 +18,32 @@ from colors import COLORS
 from midi_notes import MIDI_NOTES
 import rgb_multiply
 
-#import bmp_meters
+from bmp_meters import MidiMeterBmp
 
-
+display = board.DISPLAY
 
 MACROPAD_BRIGHTNESS = 0.15
 MACROPAD_SLEEP_KEYS = 60.0
 
 MACROPAD_DISPLAY_FPS = 30.0
 MACROPAD_FRAME_TIME = 1.0/MACROPAD_DISPLAY_FPS
+DISPLAY_METER_COUNT = 14
+DISPLAY_METER_SPACING = 2
+
+# hard capped at 40 for memory limitations, and it's too ridiculous to go wider
+MAX_METER_WIDTH = min(int((display.width-(DISPLAY_METER_COUNT*DISPLAY_METER_SPACING))/DISPLAY_METER_COUNT), 40)
+
+DISPLAY_METER_WIDTH = 40
+# let's not go too overboard
+
+DISPLAY_METER_WIDTH = DISPLAY_METER_WIDTH if DISPLAY_METER_WIDTH < MAX_METER_WIDTH else MAX_METER_WIDTH
+
+DISPLAY_METER_WIDTH_SPACE = DISPLAY_METER_WIDTH+DISPLAY_METER_SPACING
+
+DISPLAY_METER_HEIGHT = min(80, display.height)
+
+ENC_CLICK_METER_POSITION = 12
+ENCODER_METER_POSITION = 13
 
 macropad_sleep_keys = False
 
@@ -157,22 +174,6 @@ macropad_mode = int(MACRO_PAD_DEFAULT_PAGE)
 mode = 0
 midi_values = [0, 16, 8]  # bank, cc value, pitch
 
-#depr..
-# Chromatic scale starting with C3 as bottom left keyswitch (or use any notes you like)
-midi_notes = [
-            57, 58, 59,
-            54, 55, 56,
-            51, 52, 53,
-            48, 49, 50
-            ]
-#depr
-key_colors = [
-            20, 30, 40,
-            50, 60, 70,
-            80, 90, 100,
-            110, 120, 130
-            ]
-
 key_numbers = [
             0, 1, 2,
             3, 4, 5,
@@ -186,6 +187,7 @@ display_rows.rows[0] = "Macropad Cubase"
 display_rows.rows[1] = f"{MODES[macropad_mode-1]}"
 display_rows.rows[2] = ""
 display_rows.rows[3] = "Last Row"
+
 
 # --- Display text setup ---
 #text_lines = macropad.display_text(display_rows.rows[0])
@@ -226,7 +228,7 @@ def init_colors():
 init_colors()
 
 
-display = board.DISPLAY
+
 bitmap = displayio.Bitmap(display.width, display.height,2)
 bg_bmp = displayio.Bitmap(display.width, display.height,2)
 blank_bmp = displayio.Bitmap(display.width, display.height,2)
@@ -235,6 +237,11 @@ palette[0] = 0x000000
 palette[1] = 0xFFFFFF
 
 meter_bmp = displayio.Bitmap(display.width, display.height,2)
+
+pre_init = time.monotonic()
+midi_meter = MidiMeterBmp(DISPLAY_METER_WIDTH,DISPLAY_METER_HEIGHT,2)
+print(time.monotonic()-pre_init)
+
 
 black_palette = displayio.Palette(2)
 black_palette[0] = 0x000000
@@ -246,11 +253,11 @@ group = displayio.Group()
 
 group.append(tile_grid)
 
-BMP_FULL_METER_1 = displayio.Bitmap(10,40,2)
-BMP_FULL_METER_0 = displayio.Bitmap(10,40,2)
+# BMP_FULL_METER_1 = displayio.Bitmap(10,40,2)
+# BMP_FULL_METER_0 = displayio.Bitmap(10,40,2)
 
-BMP_FULL_METER_0.fill(0)
-BMP_FULL_METER_1.fill(1)
+# BMP_FULL_METER_0.fill(0)
+# BMP_FULL_METER_1.fill(1)
 
 midi_counter = 0
 direction = 1
@@ -266,6 +273,9 @@ display.show(group)
 
 print(f"{display.width=},{display.height=}")
 display.rotation = 0
+
+midi_fader_queue = dict()
+midi_fader_queue_l = list()
 
 while True:
 	# keep track of time when loop started
@@ -307,6 +317,7 @@ while True:
 			if midi_event.control == midi_encoder.cc:
 				pad_midi_values.encoder = midi_event.value
 				midi_encoder.current_value = midi_event.value
+
 				#print(midi_encoder.current_value)
 				#
 				# too slow code
@@ -341,6 +352,12 @@ while True:
 				event_color = event_color if key_on else midi_keys[key].off_color
 				k_color = event_color
 				macropad.pixels[key] = k_color
+
+				pos = key*DISPLAY_METER_WIDTH_SPACE
+
+				midi_fader_queue[pos] = midi_event.value
+
+				#bitmap.blit(key*11,0,midi_meter.midi_value[midi_event.value])#,x1=0,y1=0, x2=20, y2=max_y)
 				#print(f"{midi_keys[key].cc=},{midi_keys[key].current_value=}")
 	################################################################
 	# END OF MIDI RECEIVE
@@ -358,25 +375,17 @@ while True:
 			if key_event.pressed:
 				key = key_event.key_number
 
-				x = int(key*80/12.0%80)
-				y = int(key*40/12.0%40)
+				midi_fader_queue[key*DISPLAY_METER_WIDTH_SPACE] = 127
 
-				#bitmap.blit(0,0,bg_bmp)
-				# bitmap[x,y] = 1
-				# bg_bmp.blit(0,0,bitmap)
-				# group.hidden = 0
-				
-				# print(f"{midi_keys=}")
-				# macropad.midi.send(midi_keys[key].msg(pad_midi_values.keys[key]))
 				if(midi_keys[key].toggle == 0):
 					macropad.midi.send(midi_keys[key].msg(127))
 				else:
 					macropad.midi.send(midi_keys[key].msg())
 				macropad.pixels[key] = midi_keys[key].on_color 
-				#text_lines[1].text = "NoteOn:{}".format(midi_notes[key])
 
 			if key_event.released:
 				key = key_event.key_number
+				midi_fader_queue[key*DISPLAY_METER_WIDTH_SPACE] = 0
 
 				# group.scale = 2
 				# # group.hidden = 1
@@ -410,14 +419,17 @@ while True:
 		#text_lines[1].text = f"{MODES[macropad_mode-1]}"
 		#text_lines.show()
 		display_rows.rows[1] = f"{MODES[macropad_mode-1]}"
-		set_screen(macropad,text_lines,display_rows)
+		#set_screen(macropad,text_lines,display_rows)
 		load_config(conf,midi_keys,midi_cc_lookup,macropad_mode)
 		init_colors()
+		midi_fader_queue[ENC_CLICK_METER_POSITION*DISPLAY_METER_WIDTH_SPACE] = 127
+
 
 	if macropad.encoder_switch_debounced.released:
 		loop_last_action = time.monotonic()
 		#macropad_sleep_keys = False
 		macropad.red_led = macropad.encoder_switch
+		midi_fader_queue[ENC_CLICK_METER_POSITION*DISPLAY_METER_WIDTH_SPACE] = 0
 
 	if last_knob_pos is not macropad.encoder:  # knob has been turned
 		loop_last_action = time.monotonic()
@@ -447,56 +459,19 @@ while True:
 				macropad.midi.send(midi_encoder.msg(pad_midi_values.encoder))
 		last_knob_pos = macropad.encoder
 
-		#print(midi_encoder.current_value)
-		#meter_bmp.blit(0,0,BMP_FULL_METER_0,0,0,0,midi_encoder.current_value)
-
-		# midi_encoder.current_value holds current midi/controller value
-
-		meter_max = 40.0
-		midi_max = 127
-		my = meter_max/midi_max*midi_encoder.current_value
-		max_y = int(BMP_FULL_METER_1.height-my)
-		max_y = max(min(max_y,BMP_FULL_METER_1.height),0)
-		#print(max_y)
-		#
-		# no need to blit both, and only needed to blip the bitmap
-		meter_bmp.blit(0,max_y,BMP_FULL_METER_1,x1 = 0,y1 = max_y,x2 = BMP_FULL_METER_0.width, y2 = BMP_FULL_METER_1.height)
-		meter_bmp.blit(0,0,BMP_FULL_METER_0,x1 = 0,y1 = 0,x2 = BMP_FULL_METER_0.width, y2 = max_y)
-		bitmap.blit(0,0,meter_bmp)#,x1=0,y1=0, x2=20, y2=max_y)
-		#bitmap[20,max_y] = 1
+		midi_fader_queue[ENCODER_METER_POSITION*DISPLAY_METER_WIDTH_SPACE] = midi_encoder.current_value
 
 
 	################################################################
 	# END ENCODER EVENT HANDLER
 	################################################################
-	
-	# time.sleep(0.0001)
-	
-	# if(midi_counter <= 0):
-	# 	direction = 2
-	# if(midi_counter >=126):
-	# 	direction = -2
-	# midi_counter = (midi_counter+direction)%127
-	# # #if(midi_counter  120):
-	# # 	midi_counter = (midi_counter-4)%127
-
-	# my = 40.0/127.0*midi_counter
-	# max_y = int(BMP_FULL_METER_1.height-my)
-	# max_y = max(min(max_y,BMP_FULL_METER_1.height),0)
-	# #print(max_y)
-
-	# # 127 = 0
-	# #
-	# # 0 = 40
-	# #
-	# #
-	# # 40.0/127.0
-
-	# meter_bmp.blit(0,max_y,BMP_FULL_METER_1,x1 = 0,y1 = max_y,x2 = BMP_FULL_METER_0.width, y2 = BMP_FULL_METER_1.height)
-	# meter_bmp.blit(0,0,BMP_FULL_METER_0,x1 = 0,y1 = 0,x2 = BMP_FULL_METER_0.width, y2 = max_y)
-	# bitmap.blit(0,0,meter_bmp)#,x1=0,y1=0, x2=20, y2=max_y)
 
 	if(time.monotonic()-MACROPAD_FRAME_TIME):
+		# draw queued messages
+		for k,v in midi_fader_queue.items():
+			bitmap.blit(k+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
+		# clear queue 
+		midi_fader_queue.clear()
 		macropad.display.refresh()
 
 	# screen saver
