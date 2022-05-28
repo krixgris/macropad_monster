@@ -25,6 +25,9 @@ print(f"Booting: {gc.mem_free()=}")
 
 display = board.DISPLAY
 
+# Display meters True/False
+MACROPAD_DISPLAY_METERS:bool = True
+
 MACROPAD_BRIGHTNESS = 0.15
 MACROPAD_SLEEP_KEYS = 30.0
 
@@ -59,6 +62,9 @@ class Display:
 					"",
 					"",
 					""]
+
+
+current_midi_values = dict()
 
 #
 # Name change + move it out to separate py-file + rethink some functionality to be more general and also use for normal keypresses?
@@ -213,6 +219,7 @@ loop_start_time = time.monotonic()
 last_run_time = time.monotonic()
 loop_last_action = time.monotonic()
 prev_gfx_update = time.monotonic()
+midi_message_time = time.monotonic()
 
 # for fun, loops through numbers showing on the display and playing audio
 def loop_numbers(iterations,reverse:bool = 0):
@@ -283,6 +290,8 @@ midi_fader_queue = dict()
 while (macropad.midi.receive() is not None):
 	pass
 
+macropad.display.refresh()
+
 gc.collect()
 
 print(f"Starting loop: {gc.mem_free()=}")
@@ -309,6 +318,8 @@ while True:
 	# if nothing is in the buffer, midi_event is always None
 	if midi_event is not None:
 		loop_last_action = time.monotonic()
+		# timer to use with throttling, at some point
+		midi_message_time = time.monotonic()
 		#macropad_sleep_keys = False
 		# handle NoteOn
 		if isinstance(midi_event, NoteOn):
@@ -488,7 +499,7 @@ while True:
 	# END ENCODER EVENT HANDLER
 	################################################################
 
-	if(time.monotonic()-prev_gfx_update > MACROPAD_FRAME_TIME):
+	if(time.monotonic()-prev_gfx_update > MACROPAD_FRAME_TIME and MACROPAD_DISPLAY_METERS):
 		# draw queued messages
 		#print(time.monotonic()-prev_gfx_update)
 		for k,v in midi_fader_queue.items():
