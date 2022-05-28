@@ -21,6 +21,8 @@ import rgb_multiply
 
 from bmp_meters import MidiMeterBmp
 
+DEBUG_OUTPUT = False
+
 print(f"Booting: {gc.mem_free()=}")
 
 display = board.DISPLAY
@@ -121,6 +123,7 @@ class MidiConfig:
 		self.toggle = config["toggle"]
 		self.current_value = 0
 		self.prev_value = 0
+		self.prev_time = 0
 	def __repr__(self):
 		return (f"({self.description}: cc={self.cc}, max={self.max_value}, min={self.min_value})")
 	def str(self):
@@ -143,6 +146,32 @@ class MidiConfig:
 midi_keys = list()
 midi_encoder = None
 midi_encoder_click = None
+
+
+def doThrottle(midiNum, midiValue, midiType):
+	global conf
+	# print conf.globalThrottleOverride
+	midi_event = midi_keys[midi_cc_lookup[midiNum]]
+	
+	prevValue = midi_event.prev_value
+	prevTime = midi_event.prev_time
+
+	currTime = time.monotonic()#time.time()*1000
+	deltaTime = currTime-prevTime
+	deltaValue = abs(midiValue-prevValue)
+	if( (100>=deltaTime > 40 and deltaValue>20)
+		or (150>=deltaTime > 100 and deltaValue>4)
+		or (250>=deltaTime > 150 and deltaValue>2)
+		or (deltaTime > 250 and deltaValue>0)
+		or midiValue in [0,127]):
+		# print deltaTime
+		# print deltaValue
+		# prevValue = conf.MidiEventList[midiType][midiNum].prevValue = midiValue
+		# prevTime = conf.MidiEventList[midiType][midiNum].prevTime = currTime
+		return True
+
+	return False
+
 
 
 def load_config(conf, midi_keys,midi_cc_lookup, page=MACRO_PAD_DEFAULT_PAGE):
@@ -262,7 +291,11 @@ midi_fader_queue = dict()
 
 
 def action(event_type:int, key:int, value:int):
-	print(f"event_type={Event.Type(event_type)}, {key=}, {value=}")
+	if(DEBUG_OUTPUT):
+		print(f"event_type={Event.Type(event_type)}, {key=}, {value=}")
+	else:
+		pass
+	midi_keys[midi_cc_lookup[key]].prev_time = time.monotonic()
 
 
 
@@ -312,37 +345,40 @@ while True:
 				macropad.stop_tone()
 		# handle CC
 		if(isinstance(midi_event, ControlChange)):
-			# Encoder CC 
-			if midi_event.control == midi_encoder.cc:
-				midi_encoder.current_value = midi_event.value
-				action(Event.MIDI_CC,midi_encoder.cc,midi_event.value)
-			# Encoder click CC
-			if midi_event.control == midi_encoder_click.cc:
-				midi_encoder_click.current_value = midi_event.value
-				action(Event.MIDI_CC,midi_encoder_click.cc,midi_event.value)
-			# Keys CC
-			if midi_event.control in (k.cc for k in midi_keys ):
-				key = midi_cc_lookup[midi_event.control]
-				prev_midi = midi_keys[key].current_value
-				action(Event.MIDI_CC,midi_keys[key].cc,midi_event.value)
-				if(midi_keys[key].current_value == midi_event.value):
-					pass
-				else:
-					midi_keys[key].current_value = midi_event.value
-					key_on = True if midi_event.value > 0 else False
-					event_color = rgb_multiply.rgb_mult(midi_keys[key].on_color, midi_event.value*1.0/127.0)
-					event_color = event_color if key_on else midi_keys[key].off_color
-					k_color = event_color
-					macropad.pixels[key] = k_color
-
-					pos = key*DISPLAY_METER_WIDTH_SPACE
-					#print(f"{prev_midi=},{midi_keys[key].current_value=}, {midi_meter.meter_value[prev_midi]=}, {midi_meter.meter_value[midi_keys[key].current_value]=}")
-
-					if(prev_midi == midi_keys[key].current_value or midi_meter.meter_value[prev_midi] == midi_meter.meter_value[midi_keys[key].current_value]):
-						#print(f"Pass")
+			if(midi_event.value%1 != 0):
+				pass
+			else:
+				# Encoder CC 
+				if midi_event.control == midi_encoder.cc:
+					midi_encoder.current_value = midi_event.value
+					action(Event.MIDI_CC,midi_encoder.cc,midi_event.value)
+				# Encoder click CC
+				if midi_event.control == midi_encoder_click.cc:
+					midi_encoder_click.current_value = midi_event.value
+					action(Event.MIDI_CC,midi_encoder_click.cc,midi_event.value)
+				# Keys CC
+				if midi_event.control in (k.cc for k in midi_keys ):
+					key = midi_cc_lookup[midi_event.control]
+					prev_midi = midi_keys[key].current_value
+					action(Event.MIDI_CC,midi_keys[key].cc,midi_event.value)
+					if(midi_keys[key].current_value == midi_event.value):
 						pass
 					else:
-						midi_fader_queue[pos] = midi_event.value
+						midi_keys[key].current_value = midi_event.value
+						key_on = True if midi_event.value > 0 else False
+						event_color = rgb_multiply.rgb_mult(midi_keys[key].on_color, midi_event.value*1.0/127.0)
+						event_color = event_color if key_on else midi_keys[key].off_color
+						k_color = event_color
+						macropad.pixels[key] = k_color
+
+						pos = key*DISPLAY_METER_WIDTH_SPACE
+						#print(f"{prev_midi=},{midi_keys[key].current_value=}, {midi_meter.meter_value[prev_midi]=}, {midi_meter.meter_value[midi_keys[key].current_value]=}")
+
+						if(prev_midi == midi_keys[key].current_value or midi_meter.meter_value[prev_midi] == midi_meter.meter_value[midi_keys[key].current_value]):
+							#print(f"Pass")
+							pass
+						else:
+							midi_fader_queue[pos] = midi_event.value
 	################################################################
 	# END OF MIDI RECEIVE
 	################################################################
