@@ -8,6 +8,7 @@ from adafruit_midi.pitch_bend import PitchBend
 from rainbowio import colorwheel
 import board
 import displayio
+import gc
 
 import json
 import time
@@ -20,12 +21,14 @@ import rgb_multiply
 
 from bmp_meters import MidiMeterBmp
 
+print(f"Booting: {gc.mem_free()=}")
+
 display = board.DISPLAY
 
 MACROPAD_BRIGHTNESS = 0.15
-MACROPAD_SLEEP_KEYS = 60.0
+MACROPAD_SLEEP_KEYS = 30.0
 
-MACROPAD_DISPLAY_FPS = 30.0
+MACROPAD_DISPLAY_FPS = 25.0
 MACROPAD_FRAME_TIME = 1.0/MACROPAD_DISPLAY_FPS
 DISPLAY_METER_COUNT = 14
 DISPLAY_METER_SPACING = 2
@@ -33,14 +36,14 @@ DISPLAY_METER_SPACING = 2
 # hard capped at 40 for memory limitations, and it's too ridiculous to go wider
 MAX_METER_WIDTH = min(int((display.width-(DISPLAY_METER_COUNT*DISPLAY_METER_SPACING))/DISPLAY_METER_COUNT), 40)
 
-DISPLAY_METER_WIDTH = 40
+DISPLAY_METER_WIDTH = 10
 # let's not go too overboard
 
 DISPLAY_METER_WIDTH = DISPLAY_METER_WIDTH if DISPLAY_METER_WIDTH < MAX_METER_WIDTH else MAX_METER_WIDTH
 
 DISPLAY_METER_WIDTH_SPACE = DISPLAY_METER_WIDTH+DISPLAY_METER_SPACING
 
-DISPLAY_METER_HEIGHT = min(80, display.height)
+DISPLAY_METER_HEIGHT = min(40, display.height)
 
 ENC_CLICK_METER_POSITION = 12
 ENCODER_METER_POSITION = 13
@@ -230,13 +233,13 @@ init_colors()
 
 
 bitmap = displayio.Bitmap(display.width, display.height,2)
-bg_bmp = displayio.Bitmap(display.width, display.height,2)
-blank_bmp = displayio.Bitmap(display.width, display.height,2)
+#bg_bmp = displayio.Bitmap(display.width, display.height,2)
+#blank_bmp = displayio.Bitmap(display.width, display.height,2)
 palette = displayio.Palette(2)
 palette[0] = 0x000000
 palette[1] = 0xFFFFFF
 
-meter_bmp = displayio.Bitmap(display.width, display.height,2)
+#meter_bmp = displayio.Bitmap(display.width, display.height,2)
 
 pre_init = time.monotonic()
 midi_meter = MidiMeterBmp(DISPLAY_METER_WIDTH,DISPLAY_METER_HEIGHT,2)
@@ -275,8 +278,14 @@ print(f"{display.width=},{display.height=}")
 display.rotation = 0
 
 midi_fader_queue = dict()
-midi_fader_queue_l = list()
 
+#clear midi buffer before starting
+while (macropad.midi.receive() is not None):
+	pass
+
+gc.collect()
+
+print(f"Starting loop: {gc.mem_free()=}")
 while True:
 	# keep track of time when loop started
 	loop_start_time = time.monotonic()
@@ -345,17 +354,26 @@ while True:
 			# Keys CC
 			if midi_event.control in (k.cc for k in midi_keys ):
 				key = midi_cc_lookup[midi_event.control]
-				pad_midi_values.keys[key] = midi_event.value
-				midi_keys[key].current_value = midi_event.value
-				key_on = True if midi_event.value > 0 else False
-				event_color = rgb_multiply.rgb_mult(midi_keys[key].on_color, midi_event.value*1.0/127.0)
-				event_color = event_color if key_on else midi_keys[key].off_color
-				k_color = event_color
-				macropad.pixels[key] = k_color
+				prev_midi = midi_keys[key].current_value
+				# pad_midi_values.keys[key] = midi_event.value
+				if(midi_keys[key].current_value == midi_event.value):
+					pass
+				else:
+					midi_keys[key].current_value = midi_event.value
+					key_on = True if midi_event.value > 0 else False
+					event_color = rgb_multiply.rgb_mult(midi_keys[key].on_color, midi_event.value*1.0/127.0)
+					event_color = event_color if key_on else midi_keys[key].off_color
+					k_color = event_color
+					macropad.pixels[key] = k_color
 
-				pos = key*DISPLAY_METER_WIDTH_SPACE
+					pos = key*DISPLAY_METER_WIDTH_SPACE
+					#print(f"{prev_midi=},{midi_keys[key].current_value=}, {midi_meter.meter_value[prev_midi]=}, {midi_meter.meter_value[midi_keys[key].current_value]=}")
 
-				midi_fader_queue[pos] = midi_event.value
+					if(prev_midi == midi_keys[key].current_value or midi_meter.meter_value[prev_midi] == midi_meter.meter_value[midi_keys[key].current_value]):
+						#print(f"Pass")
+						pass
+					else:
+						midi_fader_queue[pos] = midi_event.value
 
 				#bitmap.blit(key*11,0,midi_meter.midi_value[midi_event.value])#,x1=0,y1=0, x2=20, y2=max_y)
 				#print(f"{midi_keys[key].cc=},{midi_keys[key].current_value=}")
@@ -397,7 +415,7 @@ while True:
 
 				if(midi_keys[key].toggle == 0):
 					macropad.midi.send(midi_keys[key].msg(0))
-					macropad.pixels[key] = midi_keys[key].off_color 
+					macropad.pixels[key] = midi_keys[key].off_color
 	################################################################
 	# END KEYPAD EVENT HANDLER
 	################################################################
@@ -433,6 +451,7 @@ while True:
 
 	if last_knob_pos is not macropad.encoder:  # knob has been turned
 		loop_last_action = time.monotonic()
+		prev_midi = midi_encoder.current_value
 		#macropad_sleep_keys = False
 
 		knob_pos = macropad.encoder  # read encoder
@@ -458,19 +477,25 @@ while True:
 					midi_encoder.current_value = 0
 				macropad.midi.send(midi_encoder.msg(pad_midi_values.encoder))
 		last_knob_pos = macropad.encoder
-
-		midi_fader_queue[ENCODER_METER_POSITION*DISPLAY_METER_WIDTH_SPACE] = midi_encoder.current_value
+		#print(f"{prev_midi=},{midi_encoder.current_value=}, {midi_meter.meter_value[prev_midi]=}, {midi_meter.meter_value[midi_encoder.current_value]=}")
+		if(prev_midi == midi_encoder.current_value or midi_meter.meter_value[prev_midi] == midi_meter.meter_value[midi_encoder.current_value]):
+			pass
+		else:
+			midi_fader_queue[ENCODER_METER_POSITION*DISPLAY_METER_WIDTH_SPACE] = midi_encoder.current_value
 
 
 	################################################################
 	# END ENCODER EVENT HANDLER
 	################################################################
 
-	if(time.monotonic()-MACROPAD_FRAME_TIME):
+	if(time.monotonic()-prev_gfx_update > MACROPAD_FRAME_TIME):
 		# draw queued messages
+		#print(time.monotonic()-prev_gfx_update)
 		for k,v in midi_fader_queue.items():
 			bitmap.blit(k+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
+			#print(f"{v},{midi_meter.meter_value[v]}")
 		# clear queue 
+		prev_gfx_update = time.monotonic()
 		midi_fader_queue.clear()
 		macropad.display.refresh()
 
@@ -478,10 +503,14 @@ while True:
 	if(loop_start_time-loop_last_action>MACROPAD_SLEEP_KEYS):
 		macropad.pixels.brightness = 0
 		macropad_sleep_keys = True
+		group.hidden = 1
+		#macropad.display.refresh()
 	#	set_screen(macropad, text_lines, blank_display)
 	elif(macropad_sleep_keys and loop_start_time-loop_last_action<MACROPAD_SLEEP_KEYS):
 		macropad.pixels.brightness = MACROPAD_BRIGHTNESS
 		macropad_sleep_keys = False
+		group.hidden = 0
+		
 	#	set_screen(macropad, text_lines, display_rows)
 
 	
