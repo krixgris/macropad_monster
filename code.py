@@ -5,6 +5,7 @@ from adafruit_midi.control_change import ControlChange
 from adafruit_midi.note_off import NoteOff
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.pitch_bend import PitchBend
+
 from rainbowio import colorwheel
 import board
 import displayio
@@ -12,9 +13,8 @@ import gc
 
 import json
 import time
-import random
 
-import grid_numbers
+#import grid_numbers
 from colors import COLORS
 from midi_notes import MIDI_NOTES
 import rgb_multiply
@@ -71,6 +71,14 @@ MACROPAD_CONTROLS = ["Key 1", "Key 2", "Key 3",
 					"Key 7", "Key 8", "Key 9",
 					"Key 10", "Key 11", "Key 12",
 					"Enc_Click", "Encoder"]
+
+class EventSource:
+	KEY_EVENT = 0
+	MIDI_KEY_EVENT = 1
+	ENC_EVENT = 2
+	ENC_MIDI_EVENT = 3
+	ENC_CLICK_EVENT = 4
+	ENC_CLICK_MIDI_EVENT = 5
 
 class MacropadControls:
 	pass
@@ -358,12 +366,14 @@ while True:
 		load_config(conf,midi_keys,midi_cc_lookup,macropad_mode)
 		init_colors()
 		#midi_fader_queue[ENC_CLICK_METER_POSITION*DISPLAY_METER_WIDTH_SPACE] = 127
+		midi_fader_queue[ENC_CLICK_METER_POSITION+1000] = (127,4)
 
 
 	if macropad.encoder_switch_debounced.released:
 		#loop_last_action = time.monotonic()
 		macropad.red_led = macropad.encoder_switch
 		#midi_fader_queue[ENC_CLICK_METER_POSITION*DISPLAY_METER_WIDTH_SPACE] = 0
+		midi_fader_queue[ENC_CLICK_METER_POSITION+1000] = (0,4)
 
 	if last_knob_pos is not macropad.encoder:  # knob has been turned
 		#loop_last_action = time.monotonic()
@@ -396,7 +406,7 @@ while True:
 			pass
 		else:
 			pass
-			#midi_fader_queue[ENCODER_METER_POSITION*DISPLAY_METER_WIDTH_SPACE] = midi_encoder.current_value
+			midi_fader_queue[ENCODER_METER_POSITION+1000] = (midi_encoder.current_value,2)
 
 
 	################################################################
@@ -410,21 +420,30 @@ while True:
 		loop_last_action = time.monotonic()
 
 		for k,t in midi_fader_queue.items():
-			key = midi_cc_lookup[k]
+
 			v,source = t
+			# keypad event, midi key event
+			if(source in [0,1]):
+				key = midi_cc_lookup[k]
 
-			midi_keys[key].current_value = v
-	
-			if(midi_keys[key].toggle == 1 and source == 0):
-				v = midi_keys[key].max_value if midi_keys[key].current_value == midi_keys[key].min_value else midi_keys[key].min_value
-		
-			bitmap.blit(key*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
-			event_color = midi_keys[key].off_color if v == 0 else rgb_multiply.rgb_mult(midi_keys[key].on_color, v*1.0/127.0)
-			macropad.pixels[key] = event_color
+				midi_keys[key].current_value = v
+				if(midi_keys[key].toggle == 1 and source == 0):
+					v = midi_keys[key].max_value if midi_keys[key].current_value == midi_keys[key].min_value else midi_keys[key].min_value
+			
+				bitmap.blit(key*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
+				event_color = midi_keys[key].off_color if v == 0 else rgb_multiply.rgb_mult(midi_keys[key].on_color, v*1.0/127.0)
+				macropad.pixels[key] = event_color
 
-			if(midi_keys[key].toggle == 1 and source == 1):
-				midi_keys[key].current_value = midi_keys[key].max_value if midi_keys[key].current_value == midi_keys[key].min_value else midi_keys[key].min_value
-
+				if(midi_keys[key].toggle == 1 and source == 1):
+					midi_keys[key].current_value = midi_keys[key].max_value if midi_keys[key].current_value == midi_keys[key].min_value else midi_keys[key].min_value
+			# encoder event, midi encoder event
+			elif(source in [2,3]):
+				midi_encoder.current_value = v
+				bitmap.blit(ENCODER_METER_POSITION*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
+			# enc click event, midi enc click event
+			elif(source in [4,5]):
+				midi_encoder_click.current_value = v
+				bitmap.blit(ENC_CLICK_METER_POSITION*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
 		# clear queue 
 		prev_gfx_update = time.monotonic()
 		midi_fader_queue.clear()
