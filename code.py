@@ -291,7 +291,7 @@ while True:
 	midi_event = macropad.midi.receive()
 	# if nothing is in the buffer, midi_event is always None
 	if midi_event is not None:
-		loop_last_action = time.monotonic()
+		#loop_last_action = time.monotonic()
 		# handle NoteOn
 		if isinstance(midi_event, NoteOn):
 			macropad.stop_tone()
@@ -321,7 +321,7 @@ while True:
 	# START KEYPAD EVENT HANDLER
 	################################################################
 	while macropad.keys.events:  # check for key press or release
-		loop_last_action = time.monotonic()
+		#loop_last_action = time.monotonic()
 		key_event = macropad.keys.events.get()
 
 		if key_event:
@@ -348,7 +348,7 @@ while True:
 	################################################################
 	macropad.encoder_switch_debounced.update()  # check the knob switch for press or release
 	if macropad.encoder_switch_debounced.pressed:
-		loop_last_action = time.monotonic()
+		#loop_last_action = time.monotonic()
 		
 		macropad.midi.send(midi_encoder_click.msg(midi_encoder_click.current_value,cc_offset=macropad_mode-1))
 		macropad_mode = macropad_mode%len(MODES)+1
@@ -361,12 +361,12 @@ while True:
 
 
 	if macropad.encoder_switch_debounced.released:
-		loop_last_action = time.monotonic()
+		#loop_last_action = time.monotonic()
 		macropad.red_led = macropad.encoder_switch
 		#midi_fader_queue[ENC_CLICK_METER_POSITION*DISPLAY_METER_WIDTH_SPACE] = 0
 
 	if last_knob_pos is not macropad.encoder:  # knob has been turned
-		loop_last_action = time.monotonic()
+		#loop_last_action = time.monotonic()
 		prev_midi = midi_encoder.current_value
 
 
@@ -406,6 +406,9 @@ while True:
 	if(time.monotonic()-prev_gfx_update > MACROPAD_FRAME_TIME and MACROPAD_DISPLAY_METERS and len(midi_fader_queue)>0):
 		# draw queued messages
 		#print(midi_fader_queue)
+		# 
+		loop_last_action = time.monotonic()
+
 		for k,t in midi_fader_queue.items():
 			key = midi_cc_lookup[k]
 			v,source = t
@@ -418,7 +421,7 @@ while True:
 			bitmap.blit(key*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
 			event_color = midi_keys[key].off_color if v == 0 else rgb_multiply.rgb_mult(midi_keys[key].on_color, v*1.0/127.0)
 			macropad.pixels[key] = event_color
-				
+
 			if(midi_keys[key].toggle == 1 and source == 1):
 				midi_keys[key].current_value = midi_keys[key].max_value if midi_keys[key].current_value == midi_keys[key].min_value else midi_keys[key].min_value
 
@@ -432,10 +435,13 @@ while True:
 		macropad.pixels.brightness = 0
 		macropad_sleep_keys = True
 		group.hidden = 1
+		macropad.display.refresh()
+
 	elif(macropad_sleep_keys and loop_start_time-loop_last_action<MACROPAD_SLEEP_KEYS):
 		macropad.pixels.brightness = MACROPAD_BRIGHTNESS
 		macropad_sleep_keys = False
-		group.hidden = 0	
+		group.hidden = 0
+		macropad.display.refresh()
 ################################################################
 # END MAIN LOOP
 ################################################################
