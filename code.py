@@ -314,10 +314,12 @@ while True:
 		if(isinstance(midi_event, ControlChange)):
 			# Encoder CC 
 			if midi_event.control == midi_encoder.cc:
-				midi_encoder.current_value = midi_event.value
+				midi_fader_queue[ENCODER_METER_POSITION+1000] = (midi_event.value,3)
+				#midi_encoder.current_value = midi_event.value
 			# Encoder click CC
 			if midi_event.control == midi_encoder_click.cc:
-				midi_encoder_click.current_value = midi_event.value
+				midi_fader_queue[ENC_CLICK_METER_POSITION+1000] = (midi_event.value,5)
+				#midi_encoder_click.current_value = midi_event.value
 			# Keys CC
 			if midi_event.control in (k.cc for k in midi_keys ):
 				midi_fader_queue[midi_event.control] = (midi_event.value,1)
