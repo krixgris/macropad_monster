@@ -74,12 +74,14 @@ MACROPAD_CONTROLS = ["Key 1", "Key 2", "Key 3",
 					"Enc_Click", "Encoder"]
 
 class EventSource:
+	INIT_METETS_EVENT = -1
 	KEY_EVENT = 0
 	MIDI_KEY_EVENT = 1
 	ENC_EVENT = 2
 	ENC_MIDI_EVENT = 3
 	ENC_CLICK_EVENT = 4
 	ENC_CLICK_MIDI_EVENT = 5
+
 
 class MacropadControls:
 	pass
