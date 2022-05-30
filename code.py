@@ -6,6 +6,7 @@ from adafruit_midi.note_off import NoteOff
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.pitch_bend import PitchBend
 
+
 from rainbowio import colorwheel
 import board
 import displayio
@@ -249,7 +250,11 @@ midi_message_time = time.monotonic()
 # init colors from setup
 def init_colors():
 	for k in midi_keys:
-		macropad.pixels[k.key] = k.off_color 
+		macropad.pixels[k.key] = k.off_color
+
+def init_display_meters():
+	for i in range(0,DISPLAY_METER_COUNT):
+		midi_fader_queue[i] = (0,-1)
 
 init_colors()
 
@@ -367,6 +372,7 @@ while True:
 		display_rows.rows[1] = f"{MODES[macropad_mode-1]}"
 		load_config(conf,midi_keys,midi_cc_lookup,macropad_mode)
 		init_colors()
+		init_display_meters()
 		#midi_fader_queue[ENC_CLICK_METER_POSITION*DISPLAY_METER_WIDTH_SPACE] = 127
 		midi_fader_queue[ENC_CLICK_METER_POSITION+1000] = (127,4)
 
@@ -446,6 +452,10 @@ while True:
 			elif(source in [4,5]):
 				midi_encoder_click.current_value = v
 				bitmap.blit(ENC_CLICK_METER_POSITION*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
+			# reset meters
+			elif(source in [-1]):
+				for i in range(0,DISPLAY_METER_COUNT):
+					bitmap.blit(i*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
 		# clear queue 
 		prev_gfx_update = time.monotonic()
 		midi_fader_queue.clear()
