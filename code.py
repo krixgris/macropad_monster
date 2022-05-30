@@ -1,6 +1,5 @@
 # code.py
 from adafruit_macropad import MacroPad
-#from adafruit_midi.midi_message import note_parser
 from adafruit_midi.control_change import ControlChange
 from adafruit_midi.note_off import NoteOff
 from adafruit_midi.note_on import NoteOn
@@ -20,17 +19,12 @@ from config_consts import *
 from colors import COLORS
 from midi_notes import MIDI_NOTES
 import rgb_multiply
-
 from bmp_meters import MidiMeterBmp
 
-#DEBUG_OUTPUT = True
-
 print(f"Booting: {gc.mem_free()=}")
-
 display = board.DISPLAY
 
 MACROPAD_FRAME_TIME = 1.0/MACROPAD_DISPLAY_FPS
-
 # hard capped at 40 for memory limitations, and it's too ridiculous to go wider
 MAX_METER_WIDTH = min(int((display.width-(DISPLAY_METER_COUNT*DISPLAY_METER_SPACING))/DISPLAY_METER_COUNT), 40)
 # let's not go too overboard
