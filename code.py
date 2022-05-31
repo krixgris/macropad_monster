@@ -5,6 +5,9 @@ from adafruit_midi.note_off import NoteOff
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.pitch_bend import PitchBend
 
+import terminalio
+from adafruit_display_text import label
+
 from rainbowio import colorwheel
 import board
 import displayio
@@ -15,13 +18,42 @@ import time
 
 # imports consts for configuration
 from config_consts import *
+from macrocontroller import EncoderClickControl, EncoderControl, MacroController, KeyControl
 #import grid_numbers
 from colors import COLORS
 from midi_notes import MIDI_NOTES
 import rgb_multiply
 from bmp_meters import MidiMeterBmp
-
 print(f"Booting: {gc.mem_free()=}")
+
+# const in config file
+MIDI_CONFIG_JSON = "midi_controller_config.json"
+with open(MIDI_CONFIG_JSON) as conf_file:
+	conf = json.load(conf_file)
+	macrocontroller_config = conf['controller']
+
+
+
+key1 = KeyControl(0)
+key2 = KeyControl(1)
+encoder_click = EncoderClickControl(12)
+encoder = EncoderControl(13)
+key3 = KeyControl(2)
+
+m_list = list()
+m_list.append(key1)
+m_list.append(key2)
+m_list.append(encoder_click)
+m_list.append(encoder)
+m_list.append(key3)
+
+for c in m_list:
+	print(f"{c=}, {c.send()=}")
+
+macrocontroller = MacroController(macrocontroller_config)
+for c in macrocontroller.controls:
+	print(f"{c=}, {c.send()=}")
+
 display = board.DISPLAY
 
 MACROPAD_FRAME_TIME = 1.0/MACROPAD_DISPLAY_FPS
@@ -76,10 +108,6 @@ class EventSource:
 	ENC_MIDI_EVENT = 3
 	ENC_CLICK_EVENT = 4
 	ENC_CLICK_MIDI_EVENT = 5
-
-
-class MacropadControls:
-	pass
 
 class Event:
 	KEY_PRESS = 0
@@ -148,13 +176,6 @@ class MidiConfig:
 		return_value = self.current_value
 
 		return ControlChange(self.cc+cc_offset,return_value)
-
-# const in config file
-MIDI_CONFIG_JSON = "midi_controller_config.json"
-conf_file = open(MIDI_CONFIG_JSON)
-conf = json.load(conf_file)
-conf_file.close()
-
 
 
 def load_config(conf, midi_keys,midi_cc_lookup, page=MACRO_PAD_DEFAULT_PAGE):
@@ -228,6 +249,26 @@ while (macropad.midi.receive() is not None):
 	pass
 
 init_key_colors()
+
+
+# # Set text, font, and color
+# text = "HELLO WORLD"
+# font = terminalio.FONT
+# color = 0x0000FF
+
+# # Create the text label
+# text_area = label.Label(font, text=text, color=color)
+
+# # Set the location
+# text_area.x = 100
+# text_area.y = 80
+
+# # Show it
+# #display.show(text_area)
+# print(type(text_area))
+
+
+
 macropad.display.refresh()
 
 gc.collect()
