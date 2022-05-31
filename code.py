@@ -48,8 +48,6 @@ midi_fader_queue = dict()
 # these consts are used to place meters for these as they lack a 'key'
 ENC_CLICK_METER_POSITION = 12
 ENCODER_METER_POSITION = 13
-# saves current values per cc
-current_midi_values = dict()
 midi_keys = list()
 midi_encoder = None
 midi_encoder_click = None
