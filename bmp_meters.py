@@ -1,7 +1,11 @@
 # bmp_meters.py
 import displayio
 
+# 
+# midi_value[midi_value] = height/value of actual meter, i.e. if multiple midi values has the same height value on the meter we can use this to skip drawing
 class MidiMeterBmp:
+	"""list of bitmaps with meter values for all midi values		
+	"""
 	midi_value = list()
 	meter_value = dict()
 	def __init__(self, width=10, height=40, colors= 2):

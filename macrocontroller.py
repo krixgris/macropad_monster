@@ -12,6 +12,7 @@ class ValueMode:
 
 
 class Control:
+	"""Generic Control"""
 	_id:int
 	_cc:int
 	_min_value:int = 0
@@ -33,10 +34,16 @@ class Control:
 	def cc(self,val):
 		self._cc = val
 
-	def send():
-		pass
-	def receive():
-		pass
+	def send(self):
+		"""Send action, performs tasks.\n
+		Should this return something? Handle everything inside with referenced objects?
+		"""
+		return f"Generic Send id:{self.id}"
+	def receive(self):
+		"""Receive action, performs tasks.\n
+		Should this return something? Handle everything inside with referenced objects?
+		'"""
+		return f"Generic Receive id:{self.id}"
 
 class KeyControl(Control):
 	def send(self):
@@ -57,22 +64,28 @@ class MeterControl(Control):
 		return f"Meter midi for id:{self.id}"
 
 class MacroController:
+	"""Controller containing list of control objects. \n
+	Inits with a config json.\n
+	Keys, encoders, encoder clicks and meters
+
+	"""
 	controls = list()
 	_config = None
-	cc_to_control = dict()
+	_cc_to_control = dict()
+	_events_queued = False
 	def __init__(self,config):
 		self._config = config
 		pass
 		for k in KEYS:
 			self.controls.append(KeyControl(k))
-			self.cc_to_control[self.controls[k].cc] = k
+			self._cc_to_control[self.controls[k].cc] = k
 		self.controls.append(EncoderControl(ENCODER_ID))
-		self.cc_to_control[self.controls[ENCODER_ID].cc] = ENCODER_ID
+		self._cc_to_control[self.controls[ENCODER_ID].cc] = ENCODER_ID
 		self.controls.append(EncoderClickControl(ENCODER_CLICK_ID))
-		self.cc_to_control[self.controls[ENCODER_CLICK_ID].cc] = ENCODER_CLICK_ID
+		self._cc_to_control[self.controls[ENCODER_CLICK_ID].cc] = ENCODER_CLICK_ID
 
 	def control(self,cc:int)->int:
-		return self.cc_to_control[cc]
+		return self._cc_to_control.get(cc,None)
 		# self.cc = config["cc"]
 		# self.key_no = config["key_no"]
 		# self.key = config["key_no"]-1
