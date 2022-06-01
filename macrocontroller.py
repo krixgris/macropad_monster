@@ -5,6 +5,49 @@ from adafruit_midi.control_change import ControlChange
 from colors import COLORS
 from config_consts import *
 
+class ControlConfiguration:
+	control:int
+	cc:int
+	toggle:bool
+	on_color:int
+	off_color:int
+	min_value:int
+	max_value:int
+	description:str
+
+	def __init__(self, control, config:dict()):
+		self.control = control
+		self.cc = config.get("cc")
+		self.toggle = config.get("toggle",False)
+		self.on_color = COLORS.get(config["on_color"],int(config.get("on_color_hex",0xFF0000)))
+		self.off_color = COLORS.get(config["off_color"],int(config.get("off_color_hex",0xFFFFFF)))
+		self.min_value = config.get("min_value",0)
+		self.max_value = config.get("max_value",127)
+		self.description = config.get("description","")
+
+	def __repr__(self):
+		return (self.control,self.cc,self.toggle,self.on_color, self.description)
+
+		# self.current_value = config["max_value"] if int(config["toggle"]) in [1,2] else config["min_value"]
+		# self.prev_value = config["min_value"] if int(config["toggle"]) == 2 else config["max_value"]
+		# self.prev_time = 0
+
+
+
+
+		# self.cc = config["cc"]
+		# self.key_no = config["key_no"]
+		# self.key = config["key_no"]-1
+		# self.description = config["description"]
+		# self.on_color = COLORS.get(config["on_color"],int(config.get("on_color_hex",0xFF0000)))
+		# self.off_color = COLORS.get(config["off_color"],int(config.get("off_color_hex",0xFFFFFF)))
+		# self.max_value = config["max_value"]
+		# self.min_value = config["min_value"]
+		# self.toggle = config["toggle"]
+		# self.current_value = config["max_value"] if int(config["toggle"]) in [1,2] else config["min_value"]
+		# self.prev_value = config["min_value"] if int(config["toggle"]) == 2 else config["max_value"]
+		# self.prev_time = 0
+
 
 class MacroControlConfiguration:
 	"""Configuration for colors, behaviours etc for all controls
@@ -13,7 +56,10 @@ class MacroControlConfiguration:
 	def __init__(self,config):
 		page_count = 0
 		for page,conf in config.items():
-			self.page[page_count] = conf
+			page_conf = dict()
+			for k,v in conf.items():
+				page_conf[k] = ControlConfiguration(k,v)
+			self.page[page_count] = page_conf
 			page_count += 1
 			# print(page)
 			# print(conf)

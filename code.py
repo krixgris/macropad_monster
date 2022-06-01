@@ -34,6 +34,11 @@ with open(MIDI_CONFIG_JSON) as conf_file:
 
 control_config = MacroControlConfiguration(macrocontroller_config)
 
+print(control_config.page)
+# for conf in control_config.page:
+# 	for control,cfg in conf:
+# 		print(control)
+
 macrocontroller = MacroController(macrocontroller_config)
 # for c in macrocontroller.controls:
 # 	print(f"{c=}, {c.send()=}")
