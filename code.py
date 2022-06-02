@@ -244,6 +244,9 @@ while True:
 				macropad.stop_tone()
 		# handle CC
 		if(isinstance(midi_event, ControlChange)):
+			# Using sets to keep track of our cc's will be safer/faster (here)
+			# Similarly sets for key 'list'?
+
 			# Encoder CC 
 			if midi_event.control == midi_encoder.cc:
 				event_queue[ENCODER_METER_POSITION+1000] = (midi_event.value,EventSource.ENC_MIDI_EVENT)

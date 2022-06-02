@@ -188,6 +188,8 @@ class MacroController:
 	_cc_to_control = dict()
 	_events_queued = False
 	event_queue = dict()
+	cc_set = set()
+	"""Implement cc_set to check for existance"""
 	macropad = MacroPad()
 	def __init__(self,config):
 		self._config = config
