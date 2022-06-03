@@ -34,7 +34,7 @@ with open(MIDI_CONFIG_JSON) as conf_file:
 
 control_config = MacroControlConfiguration(macrocontroller_config)
 
-print(control_config.page)
+#print(control_config.page)
 # for conf in control_config.page:
 # 	for control,cfg in conf:
 # 		print(control)
@@ -136,7 +136,8 @@ def load_config(conf, midi_keys,midi_cc_lookup, page=MACRO_PAD_DEFAULT_PAGE):
 		midi_cc_lookup[k.cc] = k.key
 	if(DEBUG_OUTPUT):
 		for k in midi_keys:
-			print(k)
+			pass
+			#print(k)
 
 midi_encoder = MidiConfig(conf['controller'][MACRO_PAD_DEFAULT_PAGE]['enc'])
 midi_encoder_click = MidiConfig(conf['controller'][MACRO_PAD_DEFAULT_PAGE]['enc_click'])
@@ -212,8 +213,8 @@ init_key_colors()
 # #display.show(text_area)
 # print(type(text_area))
 
+print(macrocontroller.defined_cc)
 macropad.display.refresh()
-
 gc.collect()
 
 print(f"Starting loop: {gc.mem_free()=}")
@@ -344,7 +345,7 @@ while True:
 	################################################################
 
 	# draw screen and update key colors
-	if(time.monotonic()-prev_gfx_update > MACROPAD_FRAME_TIME and MACROPAD_DISPLAY_METERS and macrocontroller.events_in_queue):
+	if(event_queue and time.monotonic()-prev_gfx_update > MACROPAD_FRAME_TIME and MACROPAD_DISPLAY_METERS):
 		# draw queued messages
 		loop_last_action = time.monotonic()
 

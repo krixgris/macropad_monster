@@ -63,8 +63,8 @@ class MacroControlConfiguration:
 			page_count += 1
 			# print(page)
 			# print(conf)
-		for p in self.page.keys():
-			print(p)
+		# for p in self.page.keys():
+		# 	print(p)
 
 class ValueMode:
 	MOMENTARY = 0
@@ -186,9 +186,9 @@ class MacroController:
 	controls = list()
 	_config = None
 	_cc_to_control = dict()
-	_events_queued = False
+	# _events_queued = False
 	event_queue = dict()
-	cc_set = set()
+	defined_cc = set()
 	"""Implement cc_set to check for existance"""
 	macropad = MacroPad()
 	def __init__(self,config):
@@ -205,18 +205,26 @@ class MacroController:
 		self._cc_to_control[self.controls[ENCODER_ID].cc] = ENCODER_ID
 		self.controls.append(EncoderClickControl(ENCODER_CLICK_ID))
 		self._cc_to_control[self.controls[ENCODER_CLICK_ID].cc] = ENCODER_CLICK_ID
+
+		self.init_defined_cc()
 	
-	@property
-	def events_in_queue(self)->bool:
-		if(len(self.event_queue)>0):
-			return True
-		else:
-			return False
+	# @property
+	# def events_in_queue(self)->bool:
+	# 	if(len(self.event_queue)>0):
+	# 		return True
+	# 	else:
+	# 		return False
 	def control(self,cc:int)->int:
 		return self._cc_to_control.get(cc,None)
 
 	def page():
 		pass
+
+	def init_defined_cc(self):
+		"""Init set defined_cc for lookup in midi in"""
+		self.defined_cc = {c.cc for c in self.controls}
+
+
 		
 		# self.cc = config["cc"]
 		# self.key_no = config["key_no"]
