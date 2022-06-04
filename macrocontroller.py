@@ -222,7 +222,7 @@ class MacroController:
 
 	def init_defined_cc(self):
 		"""Init set defined_cc for lookup in midi in"""
-		self.defined_cc = {c.cc for c in self.controls}
+		self.defined_cc = {control.cc for control in self.controls}
 
 
 		

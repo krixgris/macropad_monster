@@ -14,8 +14,8 @@ DISPLAY_METER_SPACING = 2
 DISPLAY_METER_WIDTH = 10
 DISPLAY_METER_HEIGHT = 40
 
-KEYS = [k for k in range(0,12)]
+KEYS = {k for k in range(0,12)}
 ENCODER_ID= 12
 ENCODER_CLICK_ID = 13
 
-METERS = [m for m in range(20,34)]
+METERS = {m for m in range(20,34)}

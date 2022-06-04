@@ -18,13 +18,24 @@ import time
 
 # imports consts for configuration
 from config_consts import *
+from events import EVENTS, Events
+
 from macrocontroller import MacroControlConfiguration, MacroController, Event, EventSource
 #import grid_numbers
 from colors import COLORS
 from midi_notes import MIDI_NOTES
 import rgb_multiply
 from bmp_meters import MidiMeterBmp
+
 print(f"Booting: {gc.mem_free()=}")
+
+test_events = [0,1,2,3,4]
+
+print(EVENTS)
+print(EVENTS.ENC_PRESSED)
+print(EVENTS.event_type(EVENTS.ENC_PRESSED))
+# print(Event.event_type(Event.))
+
 
 # const in config file
 MIDI_CONFIG_JSON = "midi_controller_config.json"
@@ -349,8 +360,8 @@ while True:
 		# draw queued messages
 		loop_last_action = time.monotonic()
 
-		for k,t in event_queue.items():
-			v,source = t
+		for k,tuple_ in event_queue.items():
+			v,source = tuple_
 			# refactor this to unify common elements
 
 			# keypad event, midi key event
