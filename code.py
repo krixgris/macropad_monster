@@ -18,9 +18,9 @@ import time
 
 # imports consts for configuration
 from config_consts import *
-from events import EVENTS, Events
 
-from macrocontroller import MacroControlConfiguration, MacroController, Event, EventSource
+from macrocontroller import MacroControlConfiguration, MacroController, EventSource
+from macrocontroller import EVENTS, KEY_EVENTS, ENCODER_EVENTS, ENCODER_CLICK_EVENTS
 #import grid_numbers
 from colors import COLORS
 from midi_notes import MIDI_NOTES
@@ -32,8 +32,7 @@ print(f"Booting: {gc.mem_free()=}")
 test_events = [0,1,2,3,4]
 
 print(EVENTS)
-print(EVENTS.ENC_PRESSED)
-print(EVENTS.event_type(EVENTS.ENC_PRESSED))
+#print(EVENT_TYPE)
 # print(Event.event_type(Event.))
 
 
@@ -293,12 +292,13 @@ while True:
 				else:
 					event_queue[midi_keys[key].cc] = (midi_keys[key].max_value,EventSource.KEY_EVENT)
 					macropad.midi.send(midi_keys[key].msg(midi_keys[key].max_value))
+				print(macrocontroller.controls[key].send(event_type=EVENTS.KEY_PRESS))
 			if key_event.released:
 				#key = key_event.key_number
 				if(midi_keys[key].toggle == 2):
 					macropad.midi.send(midi_keys[key].msg(midi_keys[key].min_value))
 					event_queue[midi_keys[key].cc] = (midi_keys[key].min_value,EventSource.KEY_EVENT)
-			print(macrocontroller.controls[key].send())
+				print(macrocontroller.controls[key].send(event_type=EVENTS.KEY_RELEASE))
 			
 	################################################################
 	# END KEYPAD EVENT HANDLER
@@ -309,7 +309,7 @@ while True:
 	################################################################
 	macropad.encoder_switch_debounced.update()  # check the knob switch for press or release
 	if macropad.encoder_switch_debounced.pressed:
-		print(macrocontroller.controls[ENCODER_CLICK_ID].send())
+		print(macrocontroller.controls[ENCODER_CLICK_ID].send(event_type=EVENTS.ENCLICK_PRESS))
 		macropad.midi.send(midi_encoder_click.msg(midi_encoder_click.current_value,cc_offset=macropad_mode-1))
 		macropad_mode = macropad_mode%len(MODES)+1
 
@@ -321,7 +321,7 @@ while True:
 		event_queue[ENC_CLICK_METER_POSITION+1000] = (127,EventSource.ENC_CLICK_EVENT)
 
 	if macropad.encoder_switch_debounced.released:
-		print(macrocontroller.controls[ENCODER_CLICK_ID].send())
+		print(macrocontroller.controls[ENCODER_CLICK_ID].send(event_type=EVENTS.ENCLICK_RELEASE))
 		macropad.red_led = macropad.encoder_switch
 		event_queue[ENC_CLICK_METER_POSITION+1000] = (0,EventSource.ENC_CLICK_EVENT)
 
@@ -343,7 +343,7 @@ while True:
 			if(midi_encoder.current_value != prev_midi):
 				macropad.midi.send(midi_encoder.msg(midi_encoder.current_value))
 		last_knob_pos = macropad.encoder
-		print(macrocontroller.controls[ENCODER_ID].send())
+		print(macrocontroller.controls[ENCODER_ID].send(value = midi_encoder.current_value, event_type=EVENTS.ENCODER_TURN))
 		#print(prev_midi,midi_encoder.current_value,midi_meter.meter_value[prev_midi],midi_meter.meter_value[midi_encoder.current_value])
 		if(prev_midi == midi_encoder.current_value or midi_meter.meter_value[prev_midi] == midi_meter.meter_value[midi_encoder.current_value]):
 			#print("skip draw")
