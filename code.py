@@ -8,6 +8,8 @@ from adafruit_midi.pitch_bend import PitchBend
 import terminalio
 from adafruit_display_text import label
 
+import random
+
 from rainbowio import colorwheel
 import board
 import displayio
@@ -362,8 +364,20 @@ while True:
 	if(event_queue and time.monotonic()-prev_gfx_update > MACROPAD_FRAME_TIME and MACROPAD_DISPLAY_METERS):
 		# draw queued messages
 		loop_last_action = time.monotonic()
+		event_keys = [k for k in event_queue.keys()]
+		double_list = event_keys + event_keys
+		rpos = random.randint(0,len(event_keys)-1)
+		event_keys = double_list[rpos:rpos+len(event_keys)]
+		# print(rpos, rpos+len(event_keys)-1)
+		# event_keys = double_list[0:len(event_keys)]
 
-		for k,tuple_ in event_queue.items():
+		# print(rpos)
+		# random.shuffle(event_keys)
+		#event_keys
+		for i in range(0,min(MAX_EVENT_QUEUE,len(event_keys))):
+		#for k,tuple_ in event_queue.items():
+			k = event_keys.pop()
+			tuple_ = event_queue.pop(k)
 			v,source = tuple_
 			# refactor this to unify common elements
 
@@ -395,7 +409,7 @@ while True:
 					bitmap.blit(i*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
 		# clear queue 
 		prev_gfx_update = time.monotonic()
-		event_queue.clear()
+		#event_queue.clear()
 		macropad.display.refresh()
 
 	# screen saver

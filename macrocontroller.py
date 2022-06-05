@@ -207,7 +207,7 @@ class KeyControl(Control):
 				value = self.min_value
 
 		# return f"Key midi for id:{self.id}, value:{value}, event:{EVENTS.event_type(event_type)}"
-		return (self.cc, value, event_type)
+		return (self.cc, (value, event_type))
 
 class EncoderClickControl(Control):
 	_default_event = EVENTS.ENCLICK_PRESS
@@ -225,7 +225,7 @@ class EncoderClickControl(Control):
 			elif(event_type == EVENTS.MIDI_ENCLICK_RELEASE):
 				value = self.min_value
 		# return f"EncoderClick midi for id:{self.id}, event:{EVENTS.event_type(event_type)}"
-		return (self.cc, value, event_type)
+		return (self.cc, (value, event_type))
 
 class EncoderControl(Control):
 	_default_event = EVENTS.ENCODER_TURN
@@ -236,7 +236,7 @@ class EncoderControl(Control):
 		if(value is None):
 			value = self.max_value
 		#return f"Encoder midi for id:{self.id}, value:{value}, event:{EVENTS.event_type(event_type)}"
-		return (self.cc, value, event_type)
+		return (self.cc, (value, event_type))
 
 class MeterControl(Control):
 	_default_event = EVENTS.METER_UPDATE
@@ -245,7 +245,7 @@ class MeterControl(Control):
 		if(event_type == EVENTS.DEFAULT):
 			event_type = self._default_event
 		# return f"Meter midi for id:{self.id}, event:{EVENTS.event_type(event_type)}"
-		return (self.cc, value, event_type)
+		return (self.cc, (value, event_type))
 	def receive(self, value = None, event_type=EVENTS.DEFAULT):
 		return f"Meter midi for id:{self.id}, event:{EVENTS.event_type(event_type)}"
 
