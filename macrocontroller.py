@@ -20,14 +20,15 @@ class Events:
 	MIDI_CC = 5
 	MIDI_NOTE_ON = 6
 	MIDI_NOTE_OFF = 7
-	MIDI_KEYS_PRESS = 8
-	MIDI_KEYS_RELEASE = 9
+	MIDI_KEY_PRESS = 8
+	MIDI_KEY_RELEASE = 9
 	MIDI_ENCODER_TURN = 10
 	MIDI_ENCLICK = 11
 	MIDI_ENCLICK_RELEASE = 12
 	MIDI_METER_UPDATE = 13
 	INTERNAL_METER_UPDATE = 14
 	METER_UPDATE = 15
+	INIT_MTR = 16
 
 	_lookup = dict()
 
@@ -43,12 +44,23 @@ class Events:
 EVENTS = Events()
 """Enum for events. EVENT.event_type() returns name of event if needed."""
 
-KEY_EVENTS = {EVENTS.KEY_PRESS, EVENTS.KEY_RELEASE, EVENTS.MIDI_KEYS_PRESS, EVENTS.MIDI_KEYS_RELEASE}
-ENCODER_CLICK_EVENTS = {EVENTS.ENCLICK_PRESS, EVENTS.ENCLICK_RELEASE, EVENTS.MIDI_ENCLICK, EVENTS.MIDI_ENCLICK_RELEASE}
-ENCODER_EVENTS = {EVENTS.ENCODER_TURN, EVENTS.MIDI_ENCODER_TURN}
-METER_EVENTS = {EVENTS.METER_UPDATE, EVENTS.MIDI_METER_UPDATE, EVENTS.INTERNAL_METER_UPDATE}
-#MIDI_EVENTS = {event for event in EVENTS if fnmatch.filter(EVENTS._lookup,'MIDI)') }
-#INTERNAL_EVENTS = {EVENTS.MIDI}
+#KEY_EVENTS = {EVENTS.KEY_PRESS, EVENTS.KEY_RELEASE, EVENTS.MIDI_KEYS_PRESS, EVENTS.MIDI_KEYS_RELEASE}
+KEY_EVENTS = {event for event in EVENTS._lookup.keys() if 'KEY_' in EVENTS.event_type(event)}
+#ENCODER_CLICK_EVENTS = {EVENTS.ENCLICK_PRESS, EVENTS.ENCLICK_RELEASE, EVENTS.MIDI_ENCLICK, EVENTS.MIDI_ENCLICK_RELEASE}
+ENCODER_CLICK_EVENTS = {event for event in EVENTS._lookup.keys() if 'ENCLICK_' in EVENTS.event_type(event)}
+#ENCODER_EVENTS = {EVENTS.ENCODER_TURN, EVENTS.MIDI_ENCODER_TURN}
+ENCODER_EVENTS = {event for event in EVENTS._lookup.keys() if 'ENCODER_' in EVENTS.event_type(event)}
+METER_EVENTS = {event for event in EVENTS._lookup.keys() if 'METER_' in EVENTS.event_type(event)}
+MIDI_EVENTS = {event for event in EVENTS._lookup.keys() if 'MIDI_' in EVENTS.event_type(event)}
+ALL_EVENTS = {event for event in EVENTS._lookup.keys()}
+INTERNAL_EVENTS = ALL_EVENTS-MIDI_EVENTS
+
+print(f"{MIDI_EVENTS=}")
+print(f"{INTERNAL_EVENTS=}")
+print(f"{KEY_EVENTS=}")
+print(f"{ENCODER_CLICK_EVENTS=}")
+print(f"{ENCODER_EVENTS=}")
+print(f"{METER_EVENTS=}")
 
 
 class ControlConfiguration:
@@ -118,47 +130,6 @@ class ValueMode:
 	REVERSE = 2
 	ON_ONLY = 3
 
-class EventSource:
-	"""EventSource is used in the event queue for setting display and keys, and their control values"""
-	INIT_METERS_EVENT = -1
-	KEY_EVENT = 0
-	MIDI_KEY_EVENT = 1
-	ENC_EVENT = 2
-	ENC_MIDI_EVENT = 3
-	ENC_CLICK_EVENT = 4
-	ENC_CLICK_MIDI_EVENT = 5
-class Event:
-	KEY_PRESS = 0
-	KEY_RELEASE = 1
-	ENC_PRESSED = 2
-	ENC_RELEASED = 3
-	ENC_TURN = 4
-	MIDI_CC = 5
-	MIDI_NOTE_ON = 6
-	MIDI_NOTE_OFF = 7
-
-	def event_type(event_type):
-		"""Returns name of event type"""
-		type = "__UNDEFINED__"
-		if(event_type == Event.KEY_PRESS):
-			type = "KEY_PRESS"
-		elif(event_type == Event.KEY_RELEASE):
-			type = "KEY_RELEASE"
-		elif(event_type == Event.ENC_PRESSED):
-			type = "ENC_PRESSED"
-		elif(event_type == Event.ENC_RELEASED):
-			type = "ENC_RELEASED"
-		elif(event_type == Event.ENC_TURN):
-			type = "ENC_TURN"
-		elif(event_type == Event.MIDI_CC):
-			type = "MIDI_CC"
-		elif(event_type == Event.MIDI_NOTE_ON):
-			type = "MIDI_NOTE_ON"
-		elif(event_type == Event.MIDI_NOTE_OFF):
-			type = "MIDI_NOTE_OFF"
-		
-		return type
-
 class Control:
 	"""Generic Control"""
 	_id:int
@@ -223,7 +194,8 @@ class KeyControl(Control):
 			elif(event_type == EVENTS.MIDI_KEYS_RELEASE):
 				value = self.min_value
 
-		return f"Key midi for id:{self.id}, value:{value}, event:{EVENTS.event_type(event_type)}"
+		# return f"Key midi for id:{self.id}, value:{value}, event:{EVENTS.event_type(event_type)}"
+		return (self.cc, value, event_type)
 
 class EncoderClickControl(Control):
 	_default_event = EVENTS.ENCLICK_PRESS
@@ -231,7 +203,8 @@ class EncoderClickControl(Control):
 	def send(self, value = None, event_type=EVENTS.DEFAULT):
 		if(event_type == EVENTS.DEFAULT):
 			event_type = self._default_event
-		return f"EncoderClick midi for id:{self.id}, event:{EVENTS.event_type(event_type)}"
+		# return f"EncoderClick midi for id:{self.id}, event:{EVENTS.event_type(event_type)}"
+		return (self.cc, value, event_type)
 
 class EncoderControl(Control):
 	_default_event = EVENTS.ENCODER_TURN
@@ -239,7 +212,8 @@ class EncoderControl(Control):
 	def send(self, value = None, event_type=EVENTS.DEFAULT):
 		if(event_type == EVENTS.DEFAULT):
 			event_type = self._default_event
-		return f"Encoder midi for id:{self.id}, value:{value}, event:{EVENTS.event_type(event_type)}"
+		#return f"Encoder midi for id:{self.id}, value:{value}, event:{EVENTS.event_type(event_type)}"
+		return (self.cc, value, event_type)
 
 class MeterControl(Control):
 	_default_event = EVENTS.METER_UPDATE
@@ -247,7 +221,8 @@ class MeterControl(Control):
 	def send(self, value = None, event_type=EVENTS.DEFAULT):
 		if(event_type == EVENTS.DEFAULT):
 			event_type = self._default_event
-		return f"Meter midi for id:{self.id}, event:{EVENTS.event_type(event_type)}"
+		# return f"Meter midi for id:{self.id}, event:{EVENTS.event_type(event_type)}"
+		return (self.cc, value, event_type)
 	def receive(self, value = None, event_type=EVENTS.DEFAULT):
 		return f"Meter midi for id:{self.id}, event:{EVENTS.event_type(event_type)}"
 
@@ -282,12 +257,6 @@ class MacroController:
 
 		self.init_defined_cc()
 	
-	# @property
-	# def events_in_queue(self)->bool:
-	# 	if(len(self.event_queue)>0):
-	# 		return True
-	# 	else:
-	# 		return False
 	def control(self,cc:int)->int:
 		return self._cc_to_control.get(cc,None)
 
