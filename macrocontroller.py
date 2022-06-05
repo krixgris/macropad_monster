@@ -20,9 +20,8 @@ class Events:
 		MIDI_ - MIDI_EVENTS\n
 		NOT MIDI_ - INTERNAL_EVENTS\n
 		INIT_ - INIT_EVENTS\n
-	\n
-	\n
-	Be considerate of names to ensure events are grouped correctly if this is important for logic anywhere
+	
+	Be considerate of names to ensure events are grouped correctly if this is important for logic anywhere.
 	"""
 	DEFAULT = -1
 	KEY_PRESS = 0
@@ -50,6 +49,7 @@ class Events:
 			if k[0] != '_' and k.isupper() and type(v) is int:
 				self._lookup[v] = k
 	def event_type(self,event_type):
+		"""Returns name of event type. Undefined event returns _Undefined_."""
 		return self._lookup.get(event_type,"_Undefined_")
 	def __repr__(self):
 		return self._lookup
