@@ -10,6 +10,19 @@ class Events:
 	"""Faux-enum.\n
 	First char can NOT be _ and name must be all caps and/or numbers.\n
 	Extend this with more enums as needed.\n
+	\n
+	Following phrases are reserved and used for event sets:\n\n
+	If name contains:\n
+		KEY_ it is grouped as a KEY_EVENTS\n
+		ENCODER_ - ENCODER_EVENTS\n
+		ENCLICK_ - ENCODER_CLICK_EVENTS\n
+		METER_ - METER_EVENTS\n
+		MIDI_ - MIDI_EVENTS\n
+		NOT MIDI_ - INTERNAL_EVENTS\n
+		INIT_ - INIT_EVENTS\n
+	\n
+	\n
+	Be considerate of names to ensure events are grouped correctly if this is important for logic anywhere
 	"""
 	DEFAULT = -1
 	KEY_PRESS = 0
@@ -44,13 +57,11 @@ class Events:
 EVENTS = Events()
 """Enum for events. EVENT.event_type() returns name of event if needed."""
 
-#KEY_EVENTS = {EVENTS.KEY_PRESS, EVENTS.KEY_RELEASE, EVENTS.MIDI_KEYS_PRESS, EVENTS.MIDI_KEYS_RELEASE}
 KEY_EVENTS = {event for event in EVENTS._lookup.keys() if 'KEY_' in EVENTS.event_type(event)}
-#ENCODER_CLICK_EVENTS = {EVENTS.ENCLICK_PRESS, EVENTS.ENCLICK_RELEASE, EVENTS.MIDI_ENCLICK, EVENTS.MIDI_ENCLICK_RELEASE}
 ENCODER_CLICK_EVENTS = {event for event in EVENTS._lookup.keys() if 'ENCLICK_' in EVENTS.event_type(event)}
-#ENCODER_EVENTS = {EVENTS.ENCODER_TURN, EVENTS.MIDI_ENCODER_TURN}
 ENCODER_EVENTS = {event for event in EVENTS._lookup.keys() if 'ENCODER_' in EVENTS.event_type(event)}
 METER_EVENTS = {event for event in EVENTS._lookup.keys() if 'METER_' in EVENTS.event_type(event)}
+INIT_EVENTS = {event for event in EVENTS._lookup.keys() if 'INIT_' in EVENTS.event_type(event)}
 MIDI_EVENTS = {event for event in EVENTS._lookup.keys() if 'MIDI_' in EVENTS.event_type(event)}
 ALL_EVENTS = {event for event in EVENTS._lookup.keys()}
 INTERNAL_EVENTS = ALL_EVENTS-MIDI_EVENTS
@@ -61,6 +72,7 @@ print(f"{KEY_EVENTS=}")
 print(f"{ENCODER_CLICK_EVENTS=}")
 print(f"{ENCODER_EVENTS=}")
 print(f"{METER_EVENTS=}")
+print(f"{INIT_EVENTS=}")
 
 
 class ControlConfiguration:
@@ -189,9 +201,9 @@ class KeyControl(Control):
 				value = self.max_value
 			elif(event_type == EVENTS.KEY_RELEASE):
 				value = self.min_value
-			elif(event_type == EVENTS.MIDI_KEYS_PRESS):
+			elif(event_type == EVENTS.MIDI_KEY_PRESS):
 				value = self.max_value
-			elif(event_type == EVENTS.MIDI_KEYS_RELEASE):
+			elif(event_type == EVENTS.MIDI_KEY_RELEASE):
 				value = self.min_value
 
 		# return f"Key midi for id:{self.id}, value:{value}, event:{EVENTS.event_type(event_type)}"
@@ -203,6 +215,15 @@ class EncoderClickControl(Control):
 	def send(self, value = None, event_type=EVENTS.DEFAULT):
 		if(event_type == EVENTS.DEFAULT):
 			event_type = self._default_event
+		if(value is None):
+			if(event_type == EVENTS.ENCLICK_PRESS):
+				value = self.max_value
+			elif(event_type == EVENTS.ENCLICK_RELEASE):
+				value = self.min_value
+			elif(event_type == EVENTS.MIDI_ENCLICK):
+				value = self.max_value
+			elif(event_type == EVENTS.MIDI_ENCLICK_RELEASE):
+				value = self.min_value
 		# return f"EncoderClick midi for id:{self.id}, event:{EVENTS.event_type(event_type)}"
 		return (self.cc, value, event_type)
 
@@ -212,6 +233,8 @@ class EncoderControl(Control):
 	def send(self, value = None, event_type=EVENTS.DEFAULT):
 		if(event_type == EVENTS.DEFAULT):
 			event_type = self._default_event
+		if(value is None):
+			value = self.max_value
 		#return f"Encoder midi for id:{self.id}, value:{value}, event:{EVENTS.event_type(event_type)}"
 		return (self.cc, value, event_type)
 
