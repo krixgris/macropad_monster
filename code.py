@@ -20,7 +20,8 @@ import time
 from config_consts import *
 
 from macrocontroller import MacroControlConfiguration, MacroController
-from macrocontroller import EVENTS, KEY_EVENTS, ENCODER_EVENTS, ENCODER_CLICK_EVENTS
+from macrocontroller import EVENTS, KEY_EVENTS, ENCODER_EVENTS, ENCODER_CLICK_EVENTS, METER_EVENTS
+from macrocontroller import MIDI_EVENTS, INTERNAL_EVENTS, ALL_EVENTS
 #import grid_numbers
 from colors import COLORS
 from midi_notes import MIDI_NOTES
