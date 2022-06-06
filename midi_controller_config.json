@@ -174,7 +174,7 @@
 				"off_color":"off",
 				"toggle":0,
 				"max_value":127,
-				"min_value":127,
+				"min_value":0,
 				"key_no":14,
 				"description":"Encoder click"
 			}
