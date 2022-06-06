@@ -21,7 +21,7 @@ import time
 # imports consts for configuration
 from config_consts import *
 
-from macrocontroller import MacroControlConfiguration, MacroController
+from macrocontroller import MacroControlConfiguration, MacroController, ControlMessage
 from macrocontroller import EVENTS, KEY_EVENTS, ENCODER_EVENTS, ENCODER_CLICK_EVENTS, METER_EVENTS
 from macrocontroller import MIDI_EVENTS, INTERNAL_EVENTS, ALL_EVENTS
 #import grid_numbers
@@ -102,8 +102,6 @@ MACROPAD_CONTROLS = ["Key 1", "Key 2", "Key 3",
 					"Key 7", "Key 8", "Key 9",
 					"Key 10", "Key 11", "Key 12",
 					"Enc_Click", "Encoder"]
-
-
 
 class MidiConfig:
 	"""Will be deprecated after MacroController is done, as it replaces this entirely"""
@@ -288,16 +286,18 @@ while True:
 		if key_event:
 			key = key_event.key_number
 			if key_event.pressed:
-				#key = key_event.key_number
 				if(midi_keys[key].toggle == 1):
 					event_queue[midi_keys[key].cc] = (midi_keys[key].max_value if midi_keys[key].current_value == midi_keys[key].min_value else midi_keys[key].min_value,EVENTS.KEY_PRESS)
-					macropad.midi.send(midi_keys[key].msg())
+					#macropad.midi.send(midi_keys[key].msg())
+
 				else:
 					event_queue[midi_keys[key].cc] = (midi_keys[key].max_value,EVENTS.KEY_PRESS)
-					macropad.midi.send(midi_keys[key].msg(midi_keys[key].max_value))
+					#macropad.midi.send(midi_keys[key].msg(midi_keys[key].max_value))
+
 				# print(macrocontroller.controls[key].send(event_type=EVENTS.KEY_PRESS))
 				# event_queue = macrocontroller.controls[key].send(event_type=EVENTS.KEY_PRESS)
-				print(macrocontroller.controls[key].send(event_type=EVENTS.KEY_PRESS))
+				msg = macrocontroller.controls[key].send(event_type=EVENTS.KEY_PRESS)
+				macropad.midi.send(ControlChange(msg.control, msg.value))
 			if key_event.released:
 				#key = key_event.key_number
 				if(midi_keys[key].toggle == 2):

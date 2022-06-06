@@ -5,6 +5,13 @@ from adafruit_midi.control_change import ControlChange
 from colors import COLORS
 from config_consts import *
 
+class ControlMessage():
+	def __init__(self, control, value, event_type):
+		self.control = control
+		self.value = value
+		self.event_type = event_type
+	def __repr__(self):
+		return f"control: {self.control}, value: {self.value}, event_type: {EVENTS.event_type(self.event_type)}"
 
 class Events:
 	"""Faux-enum.\n
@@ -178,21 +185,19 @@ class Control:
 	def max_value(self):
 		return self._max_value
 
-	def send(self, value = None, event_type=EVENTS.DEFAULT):
-		"""Send action, performs tasks.\n
-		Should this return something? Handle everything inside with referenced objects?
+	def send(self, value = None, event_type=EVENTS.DEFAULT)->ControlMessage:
+		"""Returns ControlMessage object
 		"""
 		return f"Generic Send id:{self.id}"
-	def receive(self, value = None, event_type=EVENTS.DEFAULT):
-		"""Receive action, performs tasks.\n
-		Should this return something? Handle everything inside with referenced objects?
+	def receive(self, value = None, event_type=EVENTS.DEFAULT)->ControlMessage:
+		"""Returns ControlMessage object
 		'"""
 		return f"Generic Receive id:{self.id}"
 
 class KeyControl(Control):
 	_default_event = EVENTS.KEY_PRESS
 
-	def send(self, value = None, event_type=EVENTS.DEFAULT):
+	def send(self, value = None, event_type=EVENTS.DEFAULT)->ControlMessage:
 		if(event_type == EVENTS.DEFAULT):
 			event_type = self._default_event
 
@@ -207,12 +212,12 @@ class KeyControl(Control):
 				value = self.min_value
 
 		# return f"Key midi for id:{self.id}, value:{value}, event:{EVENTS.event_type(event_type)}"
-		return (self.cc, (value, event_type))
+		return ControlMessage(self.cc, value, event_type)
 
 class EncoderClickControl(Control):
 	_default_event = EVENTS.ENCLICK_PRESS
 	
-	def send(self, value = None, event_type=EVENTS.DEFAULT):
+	def send(self, value = None, event_type=EVENTS.DEFAULT)->ControlMessage:
 		if(event_type == EVENTS.DEFAULT):
 			event_type = self._default_event
 		if(value is None):
@@ -225,28 +230,28 @@ class EncoderClickControl(Control):
 			elif(event_type == EVENTS.MIDI_ENCLICK_RELEASE):
 				value = self.min_value
 		# return f"EncoderClick midi for id:{self.id}, event:{EVENTS.event_type(event_type)}"
-		return (self.cc, (value, event_type))
+		return ControlMessage(self.cc, value, event_type)
 
 class EncoderControl(Control):
 	_default_event = EVENTS.ENCODER_TURN
 	
-	def send(self, value = None, event_type=EVENTS.DEFAULT):
+	def send(self, value = None, event_type=EVENTS.DEFAULT)->ControlMessage:
 		if(event_type == EVENTS.DEFAULT):
 			event_type = self._default_event
 		if(value is None):
 			value = self.max_value
 		#return f"Encoder midi for id:{self.id}, value:{value}, event:{EVENTS.event_type(event_type)}"
-		return (self.cc, (value, event_type))
+		return ControlMessage(self.cc, value, event_type)
 
 class MeterControl(Control):
 	_default_event = EVENTS.METER_UPDATE
 	
-	def send(self, value = None, event_type=EVENTS.DEFAULT):
+	def send(self, value = None, event_type=EVENTS.DEFAULT)->ControlMessage:
 		if(event_type == EVENTS.DEFAULT):
 			event_type = self._default_event
 		# return f"Meter midi for id:{self.id}, event:{EVENTS.event_type(event_type)}"
-		return (self.cc, (value, event_type))
-	def receive(self, value = None, event_type=EVENTS.DEFAULT):
+		return ControlMessage(self.cc, value, event_type)
+	def receive(self, value = None, event_type=EVENTS.DEFAULT)->ControlMessage:
 		return f"Meter midi for id:{self.id}, event:{EVENTS.event_type(event_type)}"
 
 class MacroController:
