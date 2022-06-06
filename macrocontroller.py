@@ -91,8 +91,8 @@ class ControlConfiguration:
 	min_value:int
 	max_value:int
 	description:str
-	current_value:int
-	prev_value:int
+	# current_value:int
+	# prev_value:int
 
 	def __init__(self, control, config:dict()):
 		self.control = control
@@ -181,6 +181,8 @@ class Control:
 			self._toggle = config.toggle
 			self._on_color = config.on_color
 			self._off_color = config.off_color
+			if(self.toggle):
+				self.value = self.prev_value
 
 	def __repr__(self):
 		return f"id:{self.id},cc:{self.cc},max_value:{self.max_value}"
@@ -194,13 +196,27 @@ class Control:
 	@cc.setter
 	def cc(self,val):
 		self._cc = val
-
+	
+	@property
+	def value(self):
+		return self._value
+	@value.setter
+	def value(self,val):
+		self._prev_value = self._value
+		self._value = min(max(val,self._min_value),self._max_value)
+	@property
+	def prev_value(self):
+		return self._prev_value
 	@property
 	def min_value(self):
 		return self._min_value
 	@property
 	def max_value(self):
 		return self._max_value
+	@property
+	def toggle(self):
+		return self._toggle
+
 
 	def send(self, value = None, event_type=EVENTS.DEFAULT)->ControlMessage:
 		"""Returns ControlMessage object
@@ -217,19 +233,42 @@ class KeyControl(Control):
 	def send(self, value = None, event_type=EVENTS.DEFAULT)->ControlMessage:
 		if(event_type == EVENTS.DEFAULT):
 			event_type = self._default_event
+		
+		if(self.toggle and event_type in [EVENTS.KEY_RELEASE,EVENTS.MIDI_KEY_RELEASE]):
+			return None
 
 		if(value is None):
-			if(event_type == EVENTS.KEY_PRESS):
-				value = self.max_value
-			elif(event_type == EVENTS.KEY_RELEASE):
-				value = self.min_value
-			elif(event_type == EVENTS.MIDI_KEY_PRESS):
-				value = self.max_value
-			elif(event_type == EVENTS.MIDI_KEY_RELEASE):
-				value = self.min_value
+			if(self.toggle):
+				pass
+				#value = self.value
+			else:
+				if(event_type == EVENTS.KEY_PRESS):
+					value = self.max_value
+				elif(event_type == EVENTS.KEY_RELEASE):
+					value = self.min_value
+				elif(event_type == EVENTS.MIDI_KEY_PRESS):
+					value = self.max_value
+				elif(event_type == EVENTS.MIDI_KEY_RELEASE):
+					value = self.min_value
+		# else:
+		# 	self.value = value
+		# print(f"{self.value=},f{self.prev_value=}")
+		self.value = value if self.toggle == False else self.prev_value
+		# print(f"{self.value=},f{self.prev_value=}")
 
 		# return f"Key midi for id:{self.id}, value:{value}, event:{EVENTS.event_type(event_type)}"
-		return ControlMessage(self.cc, value, event_type)
+		return ControlMessage(self.cc, self.value, event_type)
+
+	def receive(self, value = None, event_type=EVENTS.DEFAULT)->ControlMessage:
+		if(event_type == EVENTS.DEFAULT):
+			event_type = self._default_event
+		# print(f"{self.value=},f{self.prev_value=}")
+		if(value == self.value):
+			return None
+		self.value = value
+		# print(f"{self.value=},f{self.prev_value=}")
+
+		return ControlMessage(self.cc, self.value, event_type)
 
 class EncoderClickControl(Control):
 	_default_event = EVENTS.ENCLICK_PRESS
@@ -237,6 +276,11 @@ class EncoderClickControl(Control):
 	def send(self, value = None, event_type=EVENTS.DEFAULT)->ControlMessage:
 		if(event_type == EVENTS.DEFAULT):
 			event_type = self._default_event
+
+		# if(self.toggle and event_type in [EVENTS.ENCLICK_RELEASE,EVENTS.MIDI_ENCLICK_RELEASE]):
+		if(event_type in [EVENTS.ENCLICK_RELEASE,EVENTS.MIDI_ENCLICK_RELEASE]):
+			return None
+
 		if(value is None):
 			if(event_type == EVENTS.ENCLICK_PRESS):
 				value = self.max_value
@@ -246,6 +290,8 @@ class EncoderClickControl(Control):
 				value = self.max_value
 			elif(event_type == EVENTS.MIDI_ENCLICK_RELEASE):
 				value = self.min_value
+		
+		self.value = value if self.toggle == False else self.prev_value
 		# return f"EncoderClick midi for id:{self.id}, event:{EVENTS.event_type(event_type)}"
 		return ControlMessage(self.cc, value, event_type)
 
@@ -259,6 +305,17 @@ class EncoderControl(Control):
 			value = self.max_value
 		#return f"Encoder midi for id:{self.id}, value:{value}, event:{EVENTS.event_type(event_type)}"
 		return ControlMessage(self.cc, value, event_type)
+
+	def receive(self, value = None, event_type=EVENTS.DEFAULT)->ControlMessage:
+		if(event_type == EVENTS.DEFAULT):
+			event_type = self._default_event
+		# print(f"{self.value=},f{self.prev_value=}")
+		if(value == self.value):
+			return None
+		self.value = value
+		# print(f"{self.value=},f{self.prev_value=}")
+
+		return ControlMessage(self.cc, self.value, event_type)
 
 class MeterControl(Control):
 	_default_event = EVENTS.METER_UPDATE
