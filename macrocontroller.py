@@ -277,6 +277,7 @@ class MacroController:
 	Keys, encoders, encoder clicks and meters
 
 	"""
+	control_pages = dict()
 	controls = list()
 	_config = None
 	_cc_to_control = dict()
@@ -291,27 +292,34 @@ class MacroController:
 		self.macropad.display.auto_refresh = False
 		self.macropad.pixels.brightness = MACROPAD_BRIGHTNESS
 
-		self.init_page_config()
-
-		# for k in KEYS:
-		# 	self.controls.append(KeyControl(k, config=self._config.page[0].get(k,None)))
-		# 	self._cc_to_control[self.controls[k].cc] = k
-		# 	#print(config["1"][str(k+1)].get("on_color",0xFFFFFF))
-		# self.controls.append(EncoderControl(ENCODER_ID, config=self._config.page[0][k]))
-		# self._cc_to_control[self.controls[ENCODER_ID].cc] = ENCODER_ID
-		# self.controls.append(EncoderClickControl(ENCODER_CLICK_ID, config=self._config.page[0][k]))
-		# self._cc_to_control[self.controls[ENCODER_CLICK_ID].cc] = ENCODER_CLICK_ID
-		# self.init_defined_cc()
+		# self.init_page_config()
+		for page_key,page in self._config.page.items():
+			self.control_pages[page_key] = list()
+			print(page_key)
+			
+			for k in KEYS:
+				print(page.get(k))
+				# self.control_pages[page_key].append(page.get(k))
+				self.control_pages[page_key].append(KeyControl(k, config=page.get(k,None)))
+				self._cc_to_control[self.control_pages[page_key][k].cc] = k
+		# 		#print(config["1"][str(k+1)].get("on_color",0xFFFFFF))
+			self.control_pages[page_key].append(EncoderControl(ENCODER_ID, config=page.get(ENCODER_ID)))
+			self._cc_to_control[self.control_pages[page_key][ENCODER_ID].cc] = ENCODER_ID
+			self.control_pages[page_key].append(EncoderClickControl(ENCODER_CLICK_ID, config=page.get(ENCODER_CLICK_ID)))
+			self._cc_to_control[self.control_pages[page_key][ENCODER_CLICK_ID].cc] = ENCODER_CLICK_ID
+			self.init_defined_cc()
+		self.controls = self.control_pages[0]
 	
 	def init_page_config(self, page = 0):
-		self.controls.clear()
+		self.controls = self.control_pages[page]
+		# self.controls.clear()
 		for k in KEYS:
-			self.controls.append(KeyControl(k, config=self._config.page[page].get(k,None)))
+		# 	self.controls.append(KeyControl(k, config=self._config.page[page].get(k,None)))
 			self._cc_to_control[self.controls[k].cc] = k
-			#print(config["1"][str(k+1)].get("on_color",0xFFFFFF))
-		self.controls.append(EncoderControl(ENCODER_ID, config=self._config.page[0][ENCODER_ID]))
+		# 	#print(config["1"][str(k+1)].get("on_color",0xFFFFFF))
+		# self.controls.append(EncoderControl(ENCODER_ID, config=self._config.page[0][ENCODER_ID]))
 		self._cc_to_control[self.controls[ENCODER_ID].cc] = ENCODER_ID
-		self.controls.append(EncoderClickControl(ENCODER_CLICK_ID, config=self._config.page[0][ENCODER_CLICK_ID]))
+		# self.controls.append(EncoderClickControl(ENCODER_CLICK_ID, config=self._config.page[0][ENCODER_CLICK_ID]))
 		self._cc_to_control[self.controls[ENCODER_CLICK_ID].cc] = ENCODER_CLICK_ID
 		self.init_defined_cc()
 
