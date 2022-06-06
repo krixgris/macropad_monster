@@ -91,11 +91,13 @@ class ControlConfiguration:
 	min_value:int
 	max_value:int
 	description:str
+	current_value:int
+	prev_value:int
 
 	def __init__(self, control, config:dict()):
 		self.control = control
 		self.cc = config.get("cc")
-		self.toggle = config.get("toggle",False)
+		self.toggle = True if config.get("toggle",False) == 1 else False
 		self.on_color = COLORS.get(config["on_color"],int(config.get("on_color_hex",0xFF0000)))
 		self.off_color = COLORS.get(config["off_color"],int(config.get("off_color_hex",0xFFFFFF)))
 		self.min_value = config.get("min_value",0)
@@ -129,19 +131,22 @@ class ControlConfiguration:
 class MacroControlConfiguration:
 	"""Configuration for colors, behaviours etc for all controls
 	"""
-	page:int = dict()
+	page = dict()
+	page_count:int = 0
 	def __init__(self,config):
-		page_count = 0
+		self.page_count = 0
 		for page,conf in config.items():
 			page_conf = dict()
 			for k,v in conf.items():
+				if(k == 'enc_click'):
+					k = ENCODER_CLICK_ID
+				elif(k == 'enc'):
+					k = ENCODER_ID
+				elif(k):
+					k = int(k)-1
 				page_conf[k] = ControlConfiguration(k,v)
-			self.page[page_count] = page_conf
-			page_count += 1
-			# print(page)
-			# print(conf)
-		# for p in self.page.keys():
-		# 	print(p)
+			self.page[self.page_count] = page_conf
+			self.page_count += 1
 
 class ValueMode:
 	MOMENTARY = 0
@@ -157,14 +162,26 @@ class Control:
 	_max_value:int = 127
 	_value:int = 0
 	_prev_value:int = 0
+	_toggle:bool = False
 	_default_event = EVENTS.DEFAULT
 
 	_on_color = 0xFFFFFF#COLORS.get(config["on_color"],int(config.get("on_color_hex",0xFF0000)))
 	_off_color =  0x000000#COLORS.get(config["off_color"],int(config.get("off_color_hex",0xFFFFFF)))
 
-	def __init__(self,id, cc = None, on_color=0xFFFFFF, off_color=0x000000):
+	def __init__(self,id,cc = None, on_color=0xFFFFFF, off_color=0x000000, config:ControlConfiguration=None):
 		self._id = id
-		self._cc = cc if cc is not None else id + 1
+		if(config is None):
+			self._cc = cc if cc is not None else id + 1
+		else:
+			self._cc = config.cc
+			self._min_value = config.min_value
+			self._max_value = config.max_value
+			self._value = config.max_value
+			self._prev_value = config.min_value
+			self._toggle = config.toggle
+			self._on_color = config.on_color
+			self._off_color = config.off_color
+
 	def __repr__(self):
 		return f"id:{self.id},cc:{self.cc},max_value:{self.max_value}"
 
@@ -268,23 +285,36 @@ class MacroController:
 	defined_cc = set()
 	"""Implement cc_set to check for existance"""
 	macropad = MacroPad()
-	def __init__(self,config):
-		self._config = config
+	def __init__(self,macrocontroller_config):
+		self._config = MacroControlConfiguration(macrocontroller_config)
 
 		self.macropad.display.auto_refresh = False
 		self.macropad.pixels.brightness = MACROPAD_BRIGHTNESS
 
+		self.init_page_config()
+
+		# for k in KEYS:
+		# 	self.controls.append(KeyControl(k, config=self._config.page[0].get(k,None)))
+		# 	self._cc_to_control[self.controls[k].cc] = k
+		# 	#print(config["1"][str(k+1)].get("on_color",0xFFFFFF))
+		# self.controls.append(EncoderControl(ENCODER_ID, config=self._config.page[0][k]))
+		# self._cc_to_control[self.controls[ENCODER_ID].cc] = ENCODER_ID
+		# self.controls.append(EncoderClickControl(ENCODER_CLICK_ID, config=self._config.page[0][k]))
+		# self._cc_to_control[self.controls[ENCODER_CLICK_ID].cc] = ENCODER_CLICK_ID
+		# self.init_defined_cc()
+	
+	def init_page_config(self, page = 0):
+		self.controls.clear()
 		for k in KEYS:
-			self.controls.append(KeyControl(k))
+			self.controls.append(KeyControl(k, config=self._config.page[page].get(k,None)))
 			self._cc_to_control[self.controls[k].cc] = k
 			#print(config["1"][str(k+1)].get("on_color",0xFFFFFF))
-		self.controls.append(EncoderControl(ENCODER_ID))
+		self.controls.append(EncoderControl(ENCODER_ID, config=self._config.page[0][ENCODER_ID]))
 		self._cc_to_control[self.controls[ENCODER_ID].cc] = ENCODER_ID
-		self.controls.append(EncoderClickControl(ENCODER_CLICK_ID))
+		self.controls.append(EncoderClickControl(ENCODER_CLICK_ID, config=self._config.page[0][ENCODER_CLICK_ID]))
 		self._cc_to_control[self.controls[ENCODER_CLICK_ID].cc] = ENCODER_CLICK_ID
-
 		self.init_defined_cc()
-	
+
 	def control(self,cc:int)->int:
 		return self._cc_to_control.get(cc,None)
 

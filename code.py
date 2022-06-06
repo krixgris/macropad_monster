@@ -32,9 +32,9 @@ from bmp_meters import MidiMeterBmp
 
 print(f"Booting: {gc.mem_free()=}")
 
-test_events = [0,1,2,3,4]
+#test_events = [0,1,2,3,4]
 
-print(EVENTS)
+#print(EVENTS)
 #print(EVENT_TYPE)
 # print(Event.event_type(Event.))
 
@@ -47,10 +47,12 @@ with open(MIDI_CONFIG_JSON) as conf_file:
 
 control_config = MacroControlConfiguration(macrocontroller_config)
 
-#print(control_config.page)
-# for conf in control_config.page:
-# 	for control,cfg in conf:
-# 		print(control)
+# print(control_config.page)
+for conf in control_config.page.values():
+	for control,cfg in conf.items():
+		print(control, cfg)
+# for control,cfg in control_config.page[0].items():
+# 	print(control,cfg)
 
 macrocontroller = MacroController(macrocontroller_config)
 # for c in macrocontroller.controls:
@@ -58,6 +60,7 @@ macrocontroller = MacroController(macrocontroller_config)
 # print(len(macrocontroller.event_queue))
 # print(macrocontroller.events_in_queue)
 event_queue = macrocontroller.event_queue
+
 
 display = board.DISPLAY
 
@@ -142,16 +145,20 @@ def load_config(conf, midi_keys,midi_cc_lookup, page=MACRO_PAD_DEFAULT_PAGE):
 	midi_keys.clear()
 	midi_cc_lookup.clear()
 	for k in range(0,12):
-		midi_keys.append(MidiConfig(conf['controller'][str(page)][str(k+1)]))
+		midi_keys.append(MidiConfig(macrocontroller_config[str(page)][str(k+1)]))
 	for k in midi_keys:
 		midi_cc_lookup[k.cc] = k.key
+
+	page_index = int(page)-1
+	macrocontroller.init_page_config(page_index)
+	
 	if(DEBUG_OUTPUT):
 		for k in midi_keys:
 			pass
 			#print(k)
 
-midi_encoder = MidiConfig(conf['controller'][MACRO_PAD_DEFAULT_PAGE]['enc'])
-midi_encoder_click = MidiConfig(conf['controller'][MACRO_PAD_DEFAULT_PAGE]['enc_click'])
+midi_encoder = MidiConfig(macrocontroller_config[MACRO_PAD_DEFAULT_PAGE]['enc'])
+midi_encoder_click = MidiConfig(macrocontroller_config[MACRO_PAD_DEFAULT_PAGE]['enc_click'])
 
 load_config(conf,midi_keys,midi_cc_lookup,MACRO_PAD_DEFAULT_PAGE)
 
@@ -297,6 +304,7 @@ while True:
 				# print(macrocontroller.controls[key].send(event_type=EVENTS.KEY_PRESS))
 				# event_queue = macrocontroller.controls[key].send(event_type=EVENTS.KEY_PRESS)
 				msg = macrocontroller.controls[key].send(event_type=EVENTS.KEY_PRESS)
+				print(msg)
 				macropad.midi.send(ControlChange(msg.control, msg.value))
 			if key_event.released:
 				#key = key_event.key_number
