@@ -168,7 +168,7 @@ class Control:
 	_on_color = 0xFFFFFF#COLORS.get(config["on_color"],int(config.get("on_color_hex",0xFF0000)))
 	_off_color =  0x000000#COLORS.get(config["off_color"],int(config.get("off_color_hex",0xFFFFFF)))
 
-	def __init__(self,id,cc = None, cc_offset = 0, config:ControlConfiguration=None):
+	def __init__(self,id,cc = None, cc_offset = 0, init_value=None, config:ControlConfiguration=None):
 		self._id = id
 		if(config is None):
 			self._cc = (cc if cc is not None else id + 1) + cc_offset
@@ -176,7 +176,7 @@ class Control:
 			self._cc = config.cc + cc_offset
 			self._min_value = config.min_value
 			self._max_value = config.max_value
-			self._value = config.max_value
+			self._value = config.max_value if init_value is None else init_value
 			self._prev_value = config.min_value
 			self._toggle = config.toggle
 			self._on_color = config.on_color
@@ -216,6 +216,13 @@ class Control:
 	@property
 	def toggle(self):
 		return self._toggle
+
+	@property
+	def on_color(self):
+		return self._on_color
+	@property
+	def off_color(self):
+		return self._off_color
 
 
 	def send(self, value = None, event_type=EVENTS.DEFAULT)->ControlMessage:
@@ -303,7 +310,7 @@ class EncoderControl(Control):
 			event_type = self._default_event
 		if(value is None):
 			value = self.max_value
-		#return f"Encoder midi for id:{self.id}, value:{value}, event:{EVENTS.event_type(event_type)}"
+		# print(f"Encoder midi for id:{self.id}, value:{value}, event:{EVENTS.event_type(event_type)}")
 		return ControlMessage(self.cc, value, event_type)
 
 	def receive(self, value = None, event_type=EVENTS.DEFAULT)->ControlMessage:
@@ -356,14 +363,12 @@ class MacroController:
 			for k in KEYS:
 				self.control_pages[page_key].append(KeyControl(k, config=page.get(k,None)))
 				self._cc_to_control[self.control_pages[page_key][k].cc] = k
-			print(page_key)
+			# print(page_key)
 			# self.control_pages[page_key].append(EncoderControl(ENCODER_ID, config=page.get(ENCODER_ID)))
-			self.control_pages[page_key].append(EncoderControl(ENCODER_ID, config=self._config.page[0].get(ENCODER_ID)))
-			
+			self.control_pages[page_key].append(EncoderControl(ENCODER_ID, init_value=0, config=self._config.page[0].get(ENCODER_ID)))
 			self._cc_to_control[self.control_pages[page_key][ENCODER_ID].cc] = ENCODER_ID
 			# self.control_pages[page_key].append(EncoderClickControl(ENCODER_CLICK_ID, config=page.get(ENCODER_CLICK_ID)))
 			self.control_pages[page_key].append(EncoderClickControl(ENCODER_CLICK_ID, cc_offset=page_key, config=self._config.page[0].get(ENCODER_CLICK_ID)))
-			
 			self._cc_to_control[self.control_pages[page_key][ENCODER_CLICK_ID].cc] = ENCODER_CLICK_ID
 		self.init_defined_cc()
 		# free memory once config is loaded

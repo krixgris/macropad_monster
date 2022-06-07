@@ -21,7 +21,7 @@ import time
 # imports consts for configuration
 from config_consts import *
 
-from macrocontroller import MacroControlConfiguration, MacroController, ControlMessage
+from macrocontroller import EncoderClickControl, EncoderControl, KeyControl, MacroControlConfiguration, MacroController, ControlMessage
 from macrocontroller import EVENTS, KEY_EVENTS, ENCODER_EVENTS, ENCODER_CLICK_EVENTS, METER_EVENTS
 from macrocontroller import MIDI_EVENTS, INTERNAL_EVENTS, ALL_EVENTS
 #import grid_numbers
@@ -179,8 +179,8 @@ prev_gfx_update = time.monotonic()
 # init colors from setup
 def init_key_colors():
 	"""init key colors to their off_color"""
-	for k in midi_keys:
-		macropad.pixels[k.key] = k.off_color
+	for k in KEYS:
+		macropad.pixels[k] = macrocontroller.controls[k].off_color
 def init_display_meters():
 	"""init display meters to zero"""
 	for i in range(0,DISPLAY_METER_COUNT):
@@ -263,26 +263,32 @@ while True:
 				macropad.stop_tone()
 		# handle CC
 		if(isinstance(midi_event, ControlChange) and midi_event.control in macrocontroller.defined_cc):
+			control = macrocontroller.controls[macrocontroller.control(midi_event.control)]
+			msg = None
+			event_type = EVENTS.DEFAULT
 			# Using sets to keep track of our cc's will be safer/faster (here)
 			# Similarly sets for key 'list'?
 
 			# Encoder CC 
-			if midi_event.control == midi_encoder.cc:
-				msg = macrocontroller.controls[macrocontroller.control(midi_event.control)].receive(midi_event.value, event_type=EVENTS.MIDI_ENCODER_TURN)
-				if(msg is not None):
-					event_queue[midi_event.control] = (msg.value,msg.event_type)
+			#if midi_event.control == midi_encoder.cc:
+			if(isinstance(control, EncoderControl)):
+				event_type = EVENTS.MIDI_ENCODER_TURN
+				msg = macrocontroller.controls[macrocontroller.control(midi_event.control)].receive(midi_event.value, event_type=event_type)
 				#event_queue[ENCODER_METER_POSITION+1000] = (midi_event.value,EVENTS.MIDI_ENCODER_TURN)
 				#midi_encoder.current_value = midi_event.value
 			# Encoder click CC
-			if midi_event.control == midi_encoder_click.cc:
-				event_queue[ENC_CLICK_METER_POSITION+1000] = (midi_event.value,EVENTS.MIDI_ENCLICK)
+			if(isinstance(control, EncoderClickControl)):
+				event_type = EVENTS.MIDI_ENCLICK
+				#event_queue[ENC_CLICK_METER_POSITION+1000] = (midi_event.value,EVENTS.MIDI_ENCLICK)
 				#midi_encoder_click.current_value = midi_event.value
 			# Keys CC
-			if midi_event.control in (k.cc for k in midi_keys ):
+			if(isinstance(control, KeyControl)):
+				event_type = EVENTS.MIDI_KEY_PRESS
 				#event_queue[midi_event.control] = (midi_event.value,EVENTS.MIDI_KEY_PRESS)
-				msg = macrocontroller.controls[macrocontroller.control(midi_event.control)].receive(midi_event.value, event_type=EVENTS.MIDI_KEY_PRESS)
-				if(msg is not None):
-					event_queue[midi_event.control] = (msg.value,msg.event_type)
+				msg = macrocontroller.controls[macrocontroller.control(midi_event.control)].receive(midi_event.value, event_type=event_type)
+
+			if(msg is not None):
+				event_queue[midi_event.control] = (msg.value,msg.event_type)
 
 			#control = macrocontroller.control(midi_event.control)
 			# if(control is not None):
@@ -299,6 +305,7 @@ while True:
 		key_event = macropad.keys.events.get()
 		if key_event:
 			key = key_event.key_number
+			control = macrocontroller.controls[key]
 			event_type = EVENTS.DEFAULT
 			if key_event.pressed:
 				event_type = EVENTS.KEY_PRESS
@@ -319,11 +326,11 @@ while True:
 				# 	macropad.midi.send(midi_keys[key].msg(midi_keys[key].min_value))
 				# 	event_queue[midi_keys[key].cc] = (midi_keys[key].min_value,EVENTS.KEY_PRESS)
 				# print(macrocontroller.controls[key].send(event_type=EVENTS.KEY_RELEASE))
-			msg = macrocontroller.controls[key].send(event_type=event_type)
+			msg = control.send(event_type=event_type)
 			if(msg is not None):
 				event_queue[msg.control] = (msg.value,msg.event_type)
 				macropad.midi.send(ControlChange(msg.control, msg.value))
-			print(msg)
+			# print(msg)
 	################################################################
 	# END KEYPAD EVENT HANDLER
 	################################################################
@@ -357,7 +364,7 @@ while True:
 		if(msg is not None):
 			event_queue[msg.control] = (msg.value,msg.event_type)
 			macropad.midi.send(ControlChange(msg.control, msg.value))
-		print(msg)
+		# print(msg)
 
 
 	if last_knob_pos is not macropad.encoder:  # knob has been turned
@@ -373,10 +380,10 @@ while True:
 		# 	pass
 		else:
 			macro_encoder.value += knob_delta
-			if(macro_encoder.value>127):
-				macro_encoder.value = 127
-			elif(macro_encoder.value<0):
-				macro_encoder.value = 0
+			# if(macro_encoder.value>127):
+			# 	macro_encoder.value = 127
+			# elif(macro_encoder.value<0):
+			# 	macro_encoder.value = 0
 			# only send midi if current value is changed
 			if(macro_encoder.value != prev_midi):
 				pass
@@ -395,7 +402,7 @@ while True:
 		if(msg is not None):
 			event_queue[msg.control] = (msg.value,msg.event_type)
 			macropad.midi.send(ControlChange(msg.control, msg.value))
-		print(msg)
+		# print(msg)
 
 	################################################################
 	# END ENCODER EVENT HANDLER
@@ -421,10 +428,12 @@ while True:
 			tuple_ = event_queue.pop(k)
 			v,source = tuple_
 			# refactor this to unify common elements
+			# performance: ensure value of meters is changed before blitting unnecessarily
 
 			# keypad event, midi key event
 			if(source in KEY_EVENTS):
 				key = macrocontroller.control(k)#midi_cc_lookup[k]
+				control = macrocontroller.controls[key]
 				#midi_keys[key].current_value = v
 				#if(midi_keys[key].toggle == 1 and source == EVENTS.KEY_PRESS):
 				#	pass
@@ -435,7 +444,8 @@ while True:
 				# 	macrocontroller.controls[key].value = 
 
 				bitmap.blit(key*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
-				event_color = midi_keys[key].off_color if v == 0 else rgb_multiply.rgb_mult(midi_keys[key].on_color, v*1.0/127.0)
+				# event_color = midi_keys[key].off_color if v == 0 else rgb_multiply.rgb_mult(midi_keys[key].on_color, v*1.0/127.0)
+				event_color = control.off_color if v == 0 else rgb_multiply.rgb_mult(control.on_color, v*1.0/127.0)
 				# event_color = midi_keys[key].off_color if v == 0 else midi_keys[key].on_color
 				macropad.pixels[key] = event_color
 
