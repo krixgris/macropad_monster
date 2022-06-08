@@ -64,22 +64,37 @@ class Events:
 EVENTS = Events()
 """Enum for events. EVENT.event_type() returns name of event if needed."""
 
-KEY_EVENTS = {event for event in EVENTS._lookup.keys() if 'KEY_' in EVENTS.event_type(event)}
-ENCODER_CLICK_EVENTS = {event for event in EVENTS._lookup.keys() if 'ENCLICK_' in EVENTS.event_type(event)}
-ENCODER_EVENTS = {event for event in EVENTS._lookup.keys() if 'ENCODER_' in EVENTS.event_type(event)}
-METER_EVENTS = {event for event in EVENTS._lookup.keys() if 'METER_' in EVENTS.event_type(event)}
-INIT_EVENTS = {event for event in EVENTS._lookup.keys() if 'INIT_' in EVENTS.event_type(event)}
-MIDI_EVENTS = {event for event in EVENTS._lookup.keys() if 'MIDI_' in EVENTS.event_type(event)}
-ALL_EVENTS = {event for event in EVENTS._lookup.keys()}
-INTERNAL_EVENTS = ALL_EVENTS-MIDI_EVENTS
+class EventTypes:
+	"""Enum of types of events."""
+	def __init__(self):
+		_EVENTS = Events()
+		self.KEY_EVENTS = {event for event in _EVENTS._lookup.keys() if 'KEY_' in _EVENTS.event_type(event)}
+		self.ENCODER_CLICK_EVENTS = {event for event in _EVENTS._lookup.keys() if 'ENCLICK_' in _EVENTS.event_type(event)}
+		self.ENCODER_EVENTS = {event for event in _EVENTS._lookup.keys() if 'ENCODER_' in _EVENTS.event_type(event)}
+		self.METER_EVENTS = {event for event in _EVENTS._lookup.keys() if 'METER_' in _EVENTS.event_type(event)}
+		self.INIT_EVENTS = {event for event in _EVENTS._lookup.keys() if 'INIT_' in _EVENTS.event_type(event)}
+		self.MIDI_EVENTS = {event for event in _EVENTS._lookup.keys() if 'MIDI_' in _EVENTS.event_type(event)}
+		self.ALL_EVENTS = {event for event in _EVENTS._lookup.keys()}
+		self.INTERNAL_EVENTS = self.ALL_EVENTS-self.MIDI_EVENTS
+		self.OFF_EVENTS = {event for event in _EVENTS._lookup.keys() if '_OFF' in _EVENTS.event_type(event)}
+		self.ON_EVENTS = {event for event in _EVENTS._lookup.keys() if '_ON' in _EVENTS.event_type(event)}
+		_RELEASE_EVENTS = {event for event in _EVENTS._lookup.keys() if '_RELEASE' in _EVENTS.event_type(event)}
+		_PRESS_EVENTS = {event for event in _EVENTS._lookup.keys() if '_PRESS' in _EVENTS.event_type(event)}
+		self.OFF_EVENTS = self.OFF_EVENTS.union(_RELEASE_EVENTS)
+		self.ON_EVENTS = self.ON_EVENTS.union(_PRESS_EVENTS)
 
-print(f"{MIDI_EVENTS=}")
-print(f"{INTERNAL_EVENTS=}")
-print(f"{KEY_EVENTS=}")
-print(f"{ENCODER_CLICK_EVENTS=}")
-print(f"{ENCODER_EVENTS=}")
-print(f"{METER_EVENTS=}")
-print(f"{INIT_EVENTS=}")
+EVENT_TYPES = EventTypes()
+"""Enum of types of events"""
+
+# print(f"{EVENT_TYPES.MIDI_EVENTS=}")
+# print(f"{EVENT_TYPES.INTERNAL_EVENTS=}")
+# print(f"{EVENT_TYPES.KEY_EVENTS=}")
+# print(f"{EVENT_TYPES.ENCODER_CLICK_EVENTS=}")
+# print(f"{EVENT_TYPES.ENCODER_EVENTS=}")
+# print(f"{EVENT_TYPES.METER_EVENTS=}")
+# print(f"{EVENT_TYPES.INIT_EVENTS=}")
+# print(f"{EVENT_TYPES.OFF_EVENTS=}")
+# print(f"{EVENT_TYPES.ON_EVENTS=}")
 
 
 class ControlConfiguration:
@@ -91,8 +106,6 @@ class ControlConfiguration:
 	min_value:int
 	max_value:int
 	description:str
-	# current_value:int
-	# prev_value:int
 
 	def __init__(self, control, config:dict()):
 		self.control = control
@@ -106,27 +119,6 @@ class ControlConfiguration:
 
 	def __repr__(self):
 		return (self.control,self.cc,self.toggle,self.on_color, self.description)
-
-		# self.current_value = config["max_value"] if int(config["toggle"]) in [1,2] else config["min_value"]
-		# self.prev_value = config["min_value"] if int(config["toggle"]) == 2 else config["max_value"]
-		# self.prev_time = 0
-
-
-
-
-		# self.cc = config["cc"]
-		# self.key_no = config["key_no"]
-		# self.key = config["key_no"]-1
-		# self.description = config["description"]
-		# self.on_color = COLORS.get(config["on_color"],int(config.get("on_color_hex",0xFF0000)))
-		# self.off_color = COLORS.get(config["off_color"],int(config.get("off_color_hex",0xFFFFFF)))
-		# self.max_value = config["max_value"]
-		# self.min_value = config["min_value"]
-		# self.toggle = config["toggle"]
-		# self.current_value = config["max_value"] if int(config["toggle"]) in [1,2] else config["min_value"]
-		# self.prev_value = config["min_value"] if int(config["toggle"]) == 2 else config["max_value"]
-		# self.prev_time = 0
-
 
 class MacroControlConfiguration:
 	"""Configuration for colors, behaviours etc for all controls
@@ -228,11 +220,11 @@ class Control:
 	def send(self, value = None, event_type=EVENTS.DEFAULT)->ControlMessage:
 		"""Returns ControlMessage object
 		"""
-		return f"Generic Send id:{self.id}"
+		return None
 	def receive(self, value = None, event_type=EVENTS.DEFAULT)->ControlMessage:
 		"""Returns ControlMessage object
 		'"""
-		return f"Generic Receive id:{self.id}"
+		return None
 
 class KeyControl(Control):
 	_default_event = EVENTS.KEY_PRESS
@@ -365,11 +357,13 @@ class MacroController:
 				self._cc_to_control[self.control_pages[page_key][k].cc] = k
 			# print(page_key)
 			# self.control_pages[page_key].append(EncoderControl(ENCODER_ID, config=page.get(ENCODER_ID)))
-			self.control_pages[page_key].append(EncoderControl(ENCODER_ID, init_value=0, config=self._config.page[0].get(ENCODER_ID)))
-			self._cc_to_control[self.control_pages[page_key][ENCODER_ID].cc] = ENCODER_ID
 			# self.control_pages[page_key].append(EncoderClickControl(ENCODER_CLICK_ID, config=page.get(ENCODER_CLICK_ID)))
 			self.control_pages[page_key].append(EncoderClickControl(ENCODER_CLICK_ID, cc_offset=page_key, config=self._config.page[0].get(ENCODER_CLICK_ID)))
 			self._cc_to_control[self.control_pages[page_key][ENCODER_CLICK_ID].cc] = ENCODER_CLICK_ID
+			self.control_pages[page_key].append(EncoderControl(ENCODER_ID, init_value=0, config=self._config.page[0].get(ENCODER_ID)))
+			self._cc_to_control[self.control_pages[page_key][ENCODER_ID].cc] = ENCODER_ID
+
+
 		self.init_defined_cc()
 		# free memory once config is loaded
 		del self._config
@@ -378,14 +372,9 @@ class MacroController:
 	
 	def init_page_config(self, page = 0):
 		self.controls = self.control_pages[page]
-		# self.controls.clear()
 		for k in KEYS:
-		# 	self.controls.append(KeyControl(k, config=self._config.page[page].get(k,None)))
 			self._cc_to_control[self.controls[k].cc] = k
-		# 	#print(config["1"][str(k+1)].get("on_color",0xFFFFFF))
-		# self.controls.append(EncoderControl(ENCODER_ID, config=self._config.page[0][ENCODER_ID]))
 		self._cc_to_control[self.controls[ENCODER_ID].cc] = ENCODER_ID
-		# self.controls.append(EncoderClickControl(ENCODER_CLICK_ID, config=self._config.page[0][ENCODER_CLICK_ID]))
 		self._cc_to_control[self.controls[ENCODER_CLICK_ID].cc] = ENCODER_CLICK_ID
 		self.init_defined_cc()
 
@@ -403,18 +392,3 @@ class MacroController:
 	def init_defined_cc(self):
 		"""Init set defined_cc for lookup in midi in"""
 		self.defined_cc = {control.cc for control in self.controls}
-
-
-		
-		# self.cc = config["cc"]
-		# self.key_no = config["key_no"]
-		# self.key = config["key_no"]-1
-		# self.description = config["description"]
-		# self.on_color = COLORS.get(config["on_color"],int(config.get("on_color_hex",0xFF0000)))
-		# self.off_color = COLORS.get(config["off_color"],int(config.get("off_color_hex",0xFFFFFF)))
-		# self.max_value = config["max_value"]
-		# self.min_value = config["min_value"]
-		# self.toggle = config["toggle"]
-		# self.current_value = config["max_value"] if int(config["toggle"]) in [1,2] else config["min_value"]
-		# self.prev_value = config["min_value"] if int(config["toggle"]) == 2 else config["max_value"]
-		# self.prev_time = 0
