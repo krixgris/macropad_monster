@@ -2,6 +2,8 @@
 from adafruit_macropad import MacroPad
 from adafruit_midi.control_change import ControlChange
 
+import time
+
 from colors import COLORS
 from config_consts import *
 
@@ -156,7 +158,10 @@ class Control:
 	_prev_value:int = 0
 	_toggle:bool = False
 	_default_event = EVENTS.DEFAULT
-
+	_prev_queued_value = 0
+	_prev_time:float = 0
+	_time_tracking:bool = True
+	
 	_on_color = 0xFFFFFF#COLORS.get(config["on_color"],int(config.get("on_color_hex",0xFF0000)))
 	_off_color =  0x000000#COLORS.get(config["off_color"],int(config.get("off_color_hex",0xFFFFFF)))
 
@@ -194,6 +199,8 @@ class Control:
 		return self._value
 	@value.setter
 	def value(self,val):
+		if(self._time_tracking):
+			self._prev_time = time.monotonic()
 		self._prev_value = self._value
 		self._value = min(max(val,self._min_value),self._max_value)
 	@property
@@ -215,6 +222,17 @@ class Control:
 	@property
 	def off_color(self):
 		return self._off_color
+
+	@property
+	def prev_queued_value(self):
+		return self._prev_queued_value
+	@prev_queued_value.setter
+	def prev_queued_value(self,val):
+		self._prev_queued_value = val
+
+	@property
+	def delta_time(self):
+		return time.monotonic()-self._prev_time
 
 
 	def send(self, value = None, event_type=EVENTS.DEFAULT)->ControlMessage:
@@ -277,8 +295,8 @@ class EncoderClickControl(Control):
 			event_type = self._default_event
 
 		# if(self.toggle and event_type in [EVENTS.ENCLICK_RELEASE,EVENTS.MIDI_ENCLICK_RELEASE]):
-		if(event_type in [EVENTS.ENCLICK_RELEASE,EVENTS.MIDI_ENCLICK_RELEASE]):
-			return None
+		# if(event_type in [EVENTS.ENCLICK_RELEASE,EVENTS.MIDI_ENCLICK_RELEASE]):
+		# 	return None
 
 		if(value is None):
 			if(event_type == EVENTS.ENCLICK_PRESS):
@@ -337,6 +355,7 @@ class MacroController:
 	controls = list()
 	_config = None
 	_cc_to_control = dict()
+	_page = 0
 	# _events_queued = False
 	event_queue = dict()
 	defined_cc = set()
@@ -358,6 +377,9 @@ class MacroController:
 			# print(page_key)
 			# self.control_pages[page_key].append(EncoderControl(ENCODER_ID, config=page.get(ENCODER_ID)))
 			# self.control_pages[page_key].append(EncoderClickControl(ENCODER_CLICK_ID, config=page.get(ENCODER_CLICK_ID)))
+
+			# issue: This order MUST follow the order of their ID's, and their ID's MUST be sequential
+			# there should be no real point to having a list for control_pages.. should swap to dict
 			self.control_pages[page_key].append(EncoderClickControl(ENCODER_CLICK_ID, cc_offset=page_key, config=self._config.page[0].get(ENCODER_CLICK_ID)))
 			self._cc_to_control[self.control_pages[page_key][ENCODER_CLICK_ID].cc] = ENCODER_CLICK_ID
 			self.control_pages[page_key].append(EncoderControl(ENCODER_ID, init_value=0, config=self._config.page[0].get(ENCODER_ID)))
@@ -371,6 +393,7 @@ class MacroController:
 		self.controls = self.control_pages[0]
 	
 	def init_page_config(self, page = 0):
+		self._page = page
 		self.controls = self.control_pages[page]
 		for k in KEYS:
 			self._cc_to_control[self.controls[k].cc] = k
@@ -381,12 +404,16 @@ class MacroController:
 	def control(self,cc:int)->int:
 		return self._cc_to_control.get(cc,None)
 
+	@property
+	def page_count(self):
+		return len(self.control_pages)
+	@property
+	def page(self):
+		return self._page
+	
 	def queue(self, targs):
 		"""Add tuple (id,value,event_type) to event_queue
 		"""
-		pass
-
-	def page():
 		pass
 
 	def init_defined_cc(self):
