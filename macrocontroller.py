@@ -159,6 +159,7 @@ class Control:
 	_toggle:bool = False
 	_default_event = EVENTS.DEFAULT
 	_prev_queued_value = 0 # keeps track of last time control was updated on display or keys. performance
+	_prev_queued_time:float = 0
 	_prev_time:float = 0
 	_value_time:float = 0
 	_time_tracking:bool = True
@@ -228,9 +229,15 @@ class Control:
 	@property
 	def prev_queued_value(self):
 		return self._prev_queued_value
+
 	@prev_queued_value.setter
 	def prev_queued_value(self,val):
 		self._prev_queued_value = val
+		self._prev_queued_time = time.monotonic()
+	@property
+	def delta_time_prev_queued(self):
+		"""Delta of previous time control was in queue"""
+		return time.monotonic()-self._prev_queued_time
 
 	@property
 	def delta_time(self):
