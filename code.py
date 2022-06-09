@@ -166,11 +166,13 @@ while True:
 			if(isinstance(control, EncoderClickControl)):
 				event_type = EVENTS.MIDI_ENCLICK
 			# Keys CC
+			
 			if(isinstance(control, KeyControl)):
 				event_type = EVENTS.MIDI_KEY_PRESS
 				msg = control.receive(midi_event.value, event_type=event_type)
-
-			if(msg is not None):
+			#print(control.delta_time_prev_queued)
+			# performance testing by throttling here instead of in queue
+			if(msg is not None and control.delta_time_prev_queued>MACROPAD_FRAME_TIME*4):
 				event_queue[control.id] = (msg.value,msg.event_type)
 
 	################################################################
