@@ -158,8 +158,9 @@ class Control:
 	_prev_value:int = 0
 	_toggle:bool = False
 	_default_event = EVENTS.DEFAULT
-	_prev_queued_value = 0
+	_prev_queued_value = 0 # keeps track of last time control was updated on display or keys. performance
 	_prev_time:float = 0
+	_value_time:float = 0
 	_time_tracking:bool = True
 	
 	_on_color = 0xFFFFFF#COLORS.get(config["on_color"],int(config.get("on_color_hex",0xFF0000)))
@@ -200,7 +201,8 @@ class Control:
 	@value.setter
 	def value(self,val):
 		if(self._time_tracking):
-			self._prev_time = time.monotonic()
+			self._prev_time = self._value_time
+			self._value_time = time.monotonic()
 		self._prev_value = self._value
 		self._value = min(max(val,self._min_value),self._max_value)
 	@property
@@ -232,7 +234,12 @@ class Control:
 
 	@property
 	def delta_time(self):
-		return time.monotonic()-self._prev_time
+		"""Delta of set value vs previously set value"""
+		return self._value_time-self._prev_time
+	@property
+	def delta_time_pre_change(self):
+		"""Delta of now vs last time value was changed"""
+		return time.monotonic()-self._value_time
 
 
 	def send(self, value = None, event_type=EVENTS.DEFAULT)->ControlMessage:
