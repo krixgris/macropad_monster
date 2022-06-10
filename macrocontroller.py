@@ -103,6 +103,7 @@ class ControlConfiguration:
 	control:int
 	cc:int
 	toggle:bool
+	continuous:bool
 	on_color:int
 	off_color:int
 	min_value:int
@@ -112,7 +113,8 @@ class ControlConfiguration:
 	def __init__(self, control, config:dict()):
 		self.control = control
 		self.cc = config.get("cc")
-		self.toggle = True if config.get("toggle",False) == 1 else False
+		self.toggle = True if config.get("toggle",0) == 1 else False
+		self.continuous = True if config.get("continuous",1) == 1 else False
 		self.on_color = COLORS.get(config["on_color"],int(config.get("on_color_hex",0xFF0000)))
 		self.off_color = COLORS.get(config["off_color"],int(config.get("off_color_hex",0xFFFFFF)))
 		self.min_value = config.get("min_value",0)
@@ -157,6 +159,7 @@ class Control:
 	_value:int = 0
 	_prev_value:int = 0
 	_toggle:bool = False
+	_continuous:bool = True
 	_default_event = EVENTS.DEFAULT
 	_prev_queued_value = 0 # keeps track of last time control was updated on display or keys. performance
 	_prev_queued_time:float = 0
@@ -178,6 +181,7 @@ class Control:
 			self._value = config.max_value if init_value is None else init_value
 			self._prev_value = config.min_value
 			self._toggle = config.toggle
+			self._continuous = config.continuous
 			self._on_color = config.on_color
 			self._off_color = config.off_color
 			if(self.toggle):
@@ -205,7 +209,12 @@ class Control:
 			self._prev_time = self._value_time
 			self._value_time = time.monotonic()
 		self._prev_value = self._value
-		self._value = min(max(val,self._min_value),self._max_value)
+		print(self._cc,self._continuous, val)
+		if(self._continuous):
+			self._value = min(max(val,self._min_value),self._max_value)
+		else:
+			self._value = self._min_value if val == self._min_value else self._max_value
+		print(self._cc,self._continuous, val)
 	@property
 	def prev_value(self):
 		return self._prev_value
@@ -218,6 +227,10 @@ class Control:
 	@property
 	def toggle(self):
 		return self._toggle
+	@property
+	def continuous(self):
+		"""Value is continuous through min-max, or can only be min/max"""
+		return self._continuous
 
 	@property
 	def on_color(self):

@@ -77,6 +77,8 @@ macropad = macrocontroller.macropad
 
 macropad_mode = int(MACRO_PAD_DEFAULT_PAGE)
 
+macrocontroller.init_page_config(0)
+
 #read init position, for deltas
 last_knob_pos = macropad.encoder  # store knob position state
 
@@ -169,10 +171,13 @@ while True:
 			
 			if(isinstance(control, KeyControl)):
 				event_type = EVENTS.MIDI_KEY_PRESS
+				# print(control.id, control.value, control.prev_value, control.prev_queued_value)
 				msg = control.receive(midi_event.value, event_type=event_type)
+				# print(control.id, control.value, control.prev_value, control.prev_queued_value)
 			#print(control.delta_time_prev_queued)
 			# performance testing by throttling here instead of in queue
-			if(msg is not None and control.delta_time_prev_queued>MACROPAD_FRAME_TIME*4):
+			# this needs an 'are we in sync?' thing, or a pageswap=True (easier)
+			if(msg is not None and (True or control.delta_time_prev_queued>MACROPAD_FRAME_TIME*4)):
 				event_queue[control.id] = (msg.value,msg.event_type)
 
 	################################################################
