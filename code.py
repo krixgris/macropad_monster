@@ -90,12 +90,21 @@ prev_gfx_update = time.monotonic()
 # init colors from setup
 def init_key_colors():
 	"""init key colors to their off_color"""
-	for k in KEYS:
-		macropad.pixels[k] = macrocontroller.controls[k].off_color
+	pass
+	# event_color = control.off_color if v == 0 else rgb_multiply.rgb_mult(control.on_color, v*1.0/127.0)
+	# macropad.pixels[control_id] = event_color
+	# for k in KEYS:
+	# 	macropad.pixels[k] = macrocontroller.controls[k].off_color
 def init_display_meters():
 	"""init display meters to zero"""
-	for i in range(0,DISPLAY_METER_COUNT):
-		event_queue[i] = (0,EVENTS.INIT_MTR)
+	#for i in range(0,DISPLAY_METER_COUNT):
+	for control in macrocontroller.controls:
+		if(isinstance(control, KeyControl)):
+			macropad.pixels[control.id] = control.off_color if control.value == 0 else rgb_multiply.rgb_mult(control.on_color, control.value*1.0/127.0)
+		bitmap.blit(control.id*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[control.value])
+	pass
+	# for control in macrocontroller.controls:
+	# 	event_queue[control.id] = (control.value,EVENTS.INIT_MTR)
 
 bitmap = displayio.Bitmap(display.width, display.height,2)
 palette = displayio.Palette(2)
@@ -123,7 +132,8 @@ display.rotation = 0
 while (macropad.midi.receive() is not None):
 	pass
 
-init_key_colors()
+#init_key_colors()
+init_display_meters()
 
 macropad.display.refresh()
 
@@ -259,6 +269,7 @@ while True:
 
 	# draw screen and update key colors
 	if(event_queue and time.monotonic()-prev_gfx_update > MACROPAD_FRAME_TIME and MACROPAD_DISPLAY_METERS):
+		#print(event_queue)
 		# draw queued messages
 		loop_last_action = time.monotonic()
 		event_keys = [k for k in event_queue.keys()]
@@ -267,14 +278,17 @@ while True:
 		rpos = random.randint(0,len(event_keys)-1)
 		event_keys = double_list[rpos:rpos+len(event_keys)]
 		meter_update = True
-
+		
 		for i in range(0,min(MAX_EVENT_QUEUE,len(event_keys))):
+			meter_update = True
 			control_id = event_keys.pop()
 			tuple_ = event_queue.pop(control_id)
 			v,source = tuple_
 			# refactor this to unify common elements
 			# performance: ensure value of meters is changed before blitting unnecessarily
 			control = macrocontroller.controls[control_id]
+			# print(control.cc, control.value, control.prev_value, control.prev_queued_value)
+			# print(f"{midi_meter.meter_value[v]=} {midi_meter.meter_value[control.prev_queued_value]=}")
 			if(midi_meter.meter_value[v] == midi_meter.meter_value[control.prev_queued_value]):
 				meter_update = False
 			# keypad event, midi key event
@@ -296,12 +310,13 @@ while True:
 			elif(source in [EVENTS.INIT_MTR]):
 				for i in range(0,DISPLAY_METER_COUNT):
 					# if(meter_update):
-					bitmap.blit(i*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
+					# bitmap.blit(i*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
+					bitmap.blit(control_id*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
+			if(meter_update):
+				control.prev_queued_value = control.value
 		# clear queue 
 		prev_gfx_update = time.monotonic()
 		# this can update all blitting since they are now all the same..
-		if(meter_update):
-			control.prev_queued_value = control.value
 		macropad.display.refresh()
 
 	# screen saver

@@ -178,14 +178,14 @@ class Control:
 			self._cc = config.cc + cc_offset
 			self._min_value = config.min_value
 			self._max_value = config.max_value
-			self._value = config.max_value if init_value is None else init_value
-			self._prev_value = config.min_value
+			self._value = config.min_value if init_value is None else init_value
+			self._prev_value = config.max_value
 			self._toggle = config.toggle
 			self._continuous = config.continuous
 			self._on_color = config.on_color
 			self._off_color = config.off_color
-			if(self.toggle):
-				self.value = self.prev_value
+			# if(self.toggle):
+			# 	self.value = self.prev_value
 
 	def __repr__(self):
 		return f"id:{self.id},cc:{self.cc},max_value:{self.max_value}"
@@ -209,12 +209,12 @@ class Control:
 			self._prev_time = self._value_time
 			self._value_time = time.monotonic()
 		self._prev_value = self._value
-		print(self._cc,self._continuous, val)
+		#print(self._cc,self._continuous, val, self._value)
 		if(self._continuous):
 			self._value = min(max(val,self._min_value),self._max_value)
 		else:
 			self._value = self._min_value if val == self._min_value else self._max_value
-		print(self._cc,self._continuous, val)
+		#print(self._cc,self._continuous, val, self._value)
 	@property
 	def prev_value(self):
 		return self._prev_value
@@ -296,9 +296,14 @@ class KeyControl(Control):
 					value = self.min_value
 		# else:
 		# 	self.value = value
-		# print(f"{self.value=},f{self.prev_value=}")
+		# if(self._id == 9):
+		# 	print(f"send_pre:{self.value=},f{self.prev_value=}")
+		if(self.toggle and self.value == self.prev_value):
+			self._prev_value = self.max_value if self.value == self.min_value else self.min_value
+
 		self.value = value if self.toggle == False else self.prev_value
-		# print(f"{self.value=},f{self.prev_value=}")
+		# if(self._id == 9):
+		# 	print(f"send_post:{self.value=},f{self.prev_value=}")
 
 		# return f"Key midi for id:{self.id}, value:{value}, event:{EVENTS.event_type(event_type)}"
 		return ControlMessage(self.cc, self.value, event_type)
@@ -306,11 +311,13 @@ class KeyControl(Control):
 	def receive(self, value = None, event_type=EVENTS.DEFAULT)->ControlMessage:
 		if(event_type == EVENTS.DEFAULT):
 			event_type = self._default_event
-		# print(f"{self.value=},f{self.prev_value=}")
+		# if(self._id == 9):
+		# 	print(f"receive_pre:{self.value=},f{self.prev_value=}")
 		if(value == self.value):
 			return None
 		self.value = value
-		# print(f"{self.value=},f{self.prev_value=}")
+		# if(self._id == 9):
+		# 	print(f"receive_post:{self.value=},f{self.prev_value=}")
 
 		return ControlMessage(self.cc, self.value, event_type)
 
@@ -427,6 +434,9 @@ class MacroController:
 		self._cc_to_control[self.controls[ENCODER_ID].cc] = ENCODER_ID
 		self._cc_to_control[self.controls[ENCODER_CLICK_ID].cc] = ENCODER_CLICK_ID
 		self.init_defined_cc()
+		# for control in self.controls:
+		# 	print(control._prev_queued_value,control.prev_value,control.value)
+		# 	control._prev_queued_value = control._prev_value#control.prev_value
 
 	def control(self,cc:int)->int:
 		return self._cc_to_control.get(cc,None)
