@@ -29,6 +29,11 @@ from midi_notes import MIDI_NOTES
 import rgb_multiply
 from bmp_meters import MidiMeterBmp
 
+def color_brightness(v):
+	return rgb_multiply.rgb_mult(0xFF0000, v*1.0/127.0)
+
+all_reds = list(map(color_brightness, range(0,128)))
+
 print(f"Booting: {gc.mem_free()=}")
 
 # const in config file
@@ -295,7 +300,10 @@ while True:
 			if(source in EVENT_TYPES.KEY_EVENTS):
 				if(meter_update):
 					bitmap.blit(control_id*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
-					event_color = control.off_color if v == 0 else rgb_multiply.rgb_mult(control.on_color, v*1.0/127.0)
+					# event_color = control.off_color if v == 0 else rgb_multiply.rgb_mult(control.on_color, v*1.0/127.0)
+					event_color = control.off_color if v == 0 else all_reds[v]
+					
+					# event_color = control.off_color if v == 0 else control.on_color
 					macropad.pixels[control_id] = event_color
 
 			# encoder event, midi encoder event
