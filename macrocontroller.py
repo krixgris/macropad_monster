@@ -6,6 +6,7 @@ import time
 
 from colors import COLORS
 from config_consts import *
+import rgb_multiply
 
 class ControlMessage():
 	def __init__(self, control, value, event_type, target_control=None, target_event_type=None):
@@ -169,6 +170,7 @@ class Control:
 	
 	_on_color = 0xFFFFFF#COLORS.get(config["on_color"],int(config.get("on_color_hex",0xFF0000)))
 	_off_color =  0x000000#COLORS.get(config["off_color"],int(config.get("off_color_hex",0xFFFFFF)))
+	_on_colors = list()
 
 	def __init__(self,id,cc = None, cc_offset = 0, init_value=None, config:ControlConfiguration=None):
 		self._id = id
@@ -184,11 +186,18 @@ class Control:
 			self._continuous = config.continuous
 			self._on_color = config.on_color
 			self._off_color = config.off_color
+			# self._on_colors = list(map(self._color_brightness, range(0,128)))
 			# if(self.toggle):
 			# 	self.value = self.prev_value
 
 	def __repr__(self):
 		return f"id:{self.id},cc:{self.cc},max_value:{self.max_value}"
+	def _color_brightness(self,values):
+		return rgb_multiply.rgb_mult(self._on_color, values*1.0/127)
+
+	@property
+	def on_colors(self):
+		return self._on_colors
 
 	@property
 	def id(self):
@@ -231,7 +240,6 @@ class Control:
 	def continuous(self):
 		"""Value is continuous through min-max, or can only be min/max"""
 		return self._continuous
-
 	@property
 	def on_color(self):
 		return self._on_color
@@ -400,6 +408,7 @@ class MacroController:
 
 		self.macropad.display.auto_refresh = False
 		self.macropad.pixels.brightness = MACROPAD_BRIGHTNESS
+		self.macropad.pixels.auto_write = False
 
 		# self.init_page_config()
 		for page_key,page in self._config.page.items():

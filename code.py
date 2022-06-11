@@ -14,6 +14,7 @@ from rainbowio import colorwheel
 import board
 import displayio
 import gc
+import neopixel
 
 import json
 import time
@@ -29,8 +30,8 @@ from midi_notes import MIDI_NOTES
 import rgb_multiply
 from bmp_meters import MidiMeterBmp
 
-def color_brightness(v):
-	return rgb_multiply.rgb_mult(0xFF0000, v*1.0/127.0)
+def color_brightness(value):
+	return rgb_multiply.rgb_mult(0xFF000F, value*1.0/127.0)
 
 all_reds = list(map(color_brightness, range(0,128)))
 
@@ -78,6 +79,8 @@ def load_config(page=MACRO_PAD_DEFAULT_PAGE):
 
 macropad = macrocontroller.macropad
 
+#pixels = neopixel.NeoPixel()
+
 
 
 macropad_mode = int(MACRO_PAD_DEFAULT_PAGE)
@@ -107,6 +110,8 @@ def init_display_meters():
 		if(isinstance(control, KeyControl)):
 			macropad.pixels[control.id] = control.off_color if control.value == 0 else rgb_multiply.rgb_mult(control.on_color, control.value*1.0/127.0)
 		bitmap.blit(control.id*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[control.value])
+		macropad.pixels.show()
+		macropad.display.refresh()
 	pass
 	# for control in macrocontroller.controls:
 	# 	event_queue[control.id] = (control.value,EVENTS.INIT_MTR)
@@ -300,10 +305,12 @@ while True:
 			if(source in EVENT_TYPES.KEY_EVENTS):
 				if(meter_update):
 					bitmap.blit(control_id*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
-					# event_color = control.off_color if v == 0 else rgb_multiply.rgb_mult(control.on_color, v*1.0/127.0)
-					event_color = control.off_color if v == 0 else all_reds[v]
+					event_color = control.off_color if v == 0 else rgb_multiply.rgb_mult(control.on_color, v*1.0/127.0)
+					# event_color = control.off_color if v == 0 else control.on_colors[v]
+					# event_color = control.off_color if v == 0 else all_reds[v]
 					
-					# event_color = control.off_color if v == 0 else control.on_color
+					# event_color = control.off_color if v < 60 else control.on_color
+					# event_color = 0x0FF00C
 					macropad.pixels[control_id] = event_color
 
 			# encoder event, midi encoder event
@@ -326,6 +333,7 @@ while True:
 		prev_gfx_update = time.monotonic()
 		# this can update all blitting since they are now all the same..
 		macropad.display.refresh()
+		macropad.pixels.show()
 
 	# screen saver
 	if(loop_start_time-loop_last_action>MACROPAD_SLEEP_KEYS):
@@ -333,12 +341,14 @@ while True:
 		macropad_sleep_keys = True
 		group.hidden = 1
 		macropad.display.refresh()
+		macropad.pixels.show()
 
 	elif(macropad_sleep_keys and loop_start_time-loop_last_action<MACROPAD_SLEEP_KEYS):
 		macropad.pixels.brightness = MACROPAD_BRIGHTNESS
 		macropad_sleep_keys = False
 		group.hidden = 0
 		macropad.display.refresh()
+		macropad.pixels.show()
 ################################################################
 # END MAIN LOOP
 ################################################################
