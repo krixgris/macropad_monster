@@ -1,9 +1,10 @@
 # rgb_multiply.py
-def byte_mult(b:int,multiplier:float)->int:
-	# caps result to between 0-255
-	return max(min(int(b*multiplier),255),0)
 
-def rgb_mult(color_rgb:int,intensity_factor:float=1.0):
+def byte_mult(b:int,multiplier)->int:
+	# caps result to between 0-255
+		return max(min(int(b*multiplier),255),0)
+
+def rgb_mult(color_rgb:int,intensity_factor=1.0):
 	# filter
 	r = 0xFF0000
 	g = 0x00FF00
