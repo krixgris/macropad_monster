@@ -241,6 +241,10 @@ class Control:
 		"""Value is continuous through min-max, or can only be min/max"""
 		return self._continuous
 	@property
+	def momentary(self):
+		"""Is momentary? - 'Not toggle'"""
+		return not self.toggle
+	@property
 	def on_color(self):
 		return self._on_color
 	@property

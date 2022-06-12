@@ -250,8 +250,16 @@ while True:
 		macropad_mode = macropad_mode%macrocontroller.page_count+1
 
 		macropad.red_led = macropad.encoder_switch
+		for control in macrocontroller.controls:
+			if(control.momentary):
+				if(isinstance(control,KeyControl)):
+					release_event = EVENTS.KEY_RELEASE
+					release_msg = control.send(event_type=release_event)
+					if(release_msg is not None):
+						macropad.midi.send(ControlChange(release_msg.control, release_msg.value))
 		macrocontroller.init_page_config(macropad_mode-1)
 		#init_key_colors()
+		
 		init_display_meters()
 
 	if macropad.encoder_switch_debounced.released:
