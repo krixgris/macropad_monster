@@ -273,6 +273,18 @@ while True:
 		knob_pos = macropad.encoder  # read encoder
 		knob_delta = knob_pos - last_knob_pos  # compute knob_delta since last read
 		last_knob_pos = knob_pos  # save new reading
+		if(0.100<control.delta_time_pre_change<=0.200):
+			# print("speed 2")
+			knob_delta = knob_delta * 2
+		elif(0.0500<control.delta_time_pre_change<=0.100):
+			# print("speed 3")
+			knob_delta = knob_delta * 3
+		elif(0.0250<control.delta_time_pre_change<=0.0500):
+			# print("speed 4")
+			knob_delta = knob_delta * 4
+		elif(control.delta_time_pre_change<=0.0250):
+			# print("speed 5")
+			knob_delta = knob_delta * 5
 
 		if(macro_encoder.value + knob_delta == macro_encoder.value):
 			pass
