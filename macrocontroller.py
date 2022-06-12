@@ -191,7 +191,7 @@ class Control:
 			# 	self.value = self.prev_value
 
 	def __repr__(self):
-		return f"id:{self.id},cc:{self.cc},max_value:{self.max_value}"
+		return f"id:{self.id},cc:{self.cc},value:{self.value},prev_value:{self.prev_value}, toggle:{self.toggle}, max_value:{self.max_value}"
 	def _color_brightness(self,values):
 		return rgb_multiply.rgb_mult(self._on_color, values*1.0/127)
 

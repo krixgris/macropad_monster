@@ -30,10 +30,10 @@ from midi_notes import MIDI_NOTES
 import rgb_multiply
 from bmp_meters import MidiMeterBmp
 
-def color_brightness(value):
-	return rgb_multiply.rgb_mult(0xFF000F, value*1.0/127.0)
+# def color_brightness(value):
+# 	return rgb_multiply.rgb_mult(0xFF000F, value*1.0/127.0)
 
-all_reds = list(map(color_brightness, range(0,128)))
+# all_reds = list(map(color_brightness, range(0,128)))
 
 print(f"Booting: {gc.mem_free()=}")
 
@@ -72,17 +72,17 @@ MACRO_PAD_DEFAULT_PAGE = "1"
 # MODES = ["Transport","Volume"]
 
 # def load_config(conf, midi_keys,midi_cc_lookup, page=MACRO_PAD_DEFAULT_PAGE):
-def load_config(page=MACRO_PAD_DEFAULT_PAGE):
-	"""depr mostly. remove and just call init page conf."""
-	page_index = int(page)-1
-	macrocontroller.init_page_config(page_index)
+# def load_config(page=MACRO_PAD_DEFAULT_PAGE):
+# 	"""depr mostly. remove and just call init page conf."""
+# 	page_index = int(page)-1
+# 	macrocontroller.init_page_config(page_index)
 
 macropad = macrocontroller.macropad
 
 #pixels = neopixel.NeoPixel()
 
 
-
+# this needs to be done nicer..
 macropad_mode = int(MACRO_PAD_DEFAULT_PAGE)
 
 macrocontroller.init_page_config(0)
@@ -107,6 +107,18 @@ def init_display_meters():
 	"""init display meters to zero"""
 	#for i in range(0,DISPLAY_METER_COUNT):
 	for control in macrocontroller.controls:
+		# momentary values reset to their min_values
+		# need to handle prev values in values ?
+		if(control.toggle == False):
+			control.value = control.min_value
+			# #control._prev_value = control.max_value
+			control.prev_queued_value = control.min_value
+
+			# control.send(0, EVENTS.KEY_PRESS)
+			# control.send(0, EVENTS.KEY_PRESS)
+			# print(control)
+			# pass
+			
 		if(isinstance(control, KeyControl)):
 			macropad.pixels[control.id] = control.off_color if control.value == 0 else rgb_multiply.rgb_mult(control.on_color, control.value*1.0/127.0)
 		bitmap.blit(control.id*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[control.value])
@@ -234,11 +246,12 @@ while True:
 	if macropad.encoder_switch_debounced.pressed:
 		enc_click_event = True
 		event_type = EVENTS.ENCLICK_PRESS
+
 		macropad_mode = macropad_mode%macrocontroller.page_count+1
 
 		macropad.red_led = macropad.encoder_switch
 		macrocontroller.init_page_config(macropad_mode-1)
-		init_key_colors()
+		#init_key_colors()
 		init_display_meters()
 
 	if macropad.encoder_switch_debounced.released:
@@ -300,7 +313,9 @@ while True:
 			# print(control.cc, control.value, control.prev_value, control.prev_queued_value)
 			# print(f"{midi_meter.meter_value[v]=} {midi_meter.meter_value[control.prev_queued_value]=}")
 			if(midi_meter.meter_value[v] == midi_meter.meter_value[control.prev_queued_value]):
+				#print("no need to update meter")
 				meter_update = False
+
 			# keypad event, midi key event
 			if(source in EVENT_TYPES.KEY_EVENTS):
 				if(meter_update):
