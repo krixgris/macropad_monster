@@ -31,6 +31,8 @@ from midi_notes import MIDI_NOTES
 import rgb_multiply
 from bmp_meters import MidiMeterBmp
 
+
+# testcode from learn.adafruit.com. create separeate module for encoder
 external_encoder = True
 
 seesaw = seesaw.Seesaw(board.I2C(), addr=0x36)
