@@ -35,23 +35,30 @@ from bmp_meters import MidiMeterBmp
 # testcode from learn.adafruit.com. create separeate module for encoder
 external_encoder = True
 
-seesaw = seesaw.Seesaw(board.I2C(), addr=0x36)
 
-seesaw_product = (seesaw.get_version() >> 16) & 0xFFFF
-print("Found product {}".format(seesaw_product))
-if seesaw_product != 4991:
-	print("Wrong firmware loaded?  Expected 4991")
-	external_encoder = False
+if(external_encoder):
+	try:
+		seesaw = seesaw.Seesaw(board.I2C(), addr=0x36)
+		seesaw_product = (seesaw.get_version() >> 16) & 0xFFFF
+		print("Found product {}".format(seesaw_product))
+		if seesaw_product != 4991:
+			print("Wrong firmware loaded?  Expected 4991")
+			external_encoder = False
 
-seesaw.pin_mode(24, seesaw.INPUT_PULLUP)
-ext_encoder_button = digitalio.DigitalIO(seesaw, 24)
-ext_encoder_button_held = False
+		seesaw.pin_mode(24, seesaw.INPUT_PULLUP)
+		ext_encoder_button = digitalio.DigitalIO(seesaw, 24)
+		ext_encoder_button_held = False
 
-ext_encoder = rotaryio.IncrementalEncoder(seesaw)
-ext_last_position = None
+		ext_encoder = rotaryio.IncrementalEncoder(seesaw)
+		ext_last_position = None
 
-ext_pixel = neopixel.NeoPixel(seesaw, 6, 1)
-ext_pixel.brightness = 0.5
+		ext_pixel = neopixel.NeoPixel(seesaw, 6, 1)
+		ext_pixel.brightness = 0.5
+	except ValueError:
+		print("No external encoder connected. Check connection?\nProgram will run with external encoder disabled.")
+		external_encoder = False
+	finally:
+		pass
 
 
 
@@ -338,22 +345,23 @@ while True:
 	################################################################
 	# EXTERNAL ENCODER EVENT HANDLER
 	################################################################
-	ext_position = ext_encoder.position
+	if(external_encoder):
+		ext_position = ext_encoder.position
 
-	if ext_position != ext_last_position:
-		ext_last_position = ext_position
-		ext_color = rgb_multiply.rgb_mult(COLORS["purple"], abs(ext_position)%255/255.0)
-		ext_pixel.fill(ext_color)
-		print("Position: {}".format(abs(ext_position)%255))
+		if ext_position != ext_last_position:
+			ext_last_position = ext_position
+			ext_color = rgb_multiply.rgb_mult(COLORS["purple"], abs(ext_position)%5/20.0)
+			ext_pixel.fill(ext_color)
+			print("Position: {}".format(abs(ext_position)%255))
 
 
-	if not ext_encoder_button.value and not ext_encoder_button_held:
-		ext_encoder_button_held = True
-		print("Button pressed")
+		if not ext_encoder_button.value and not ext_encoder_button_held:
+			ext_encoder_button_held = True
+			print("Button pressed")
 
-	if ext_encoder_button.value and ext_encoder_button_held:
-		ext_encoder_button_held = False
-		print("Button released")
+		if ext_encoder_button.value and ext_encoder_button_held:
+			ext_encoder_button_held = False
+			print("Button released")
 
 	################################################################
 	# END EXTERNAL ENCODER EVENT HANDLER
