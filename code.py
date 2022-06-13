@@ -7,6 +7,7 @@ from adafruit_midi.pitch_bend import PitchBend
 
 import terminalio
 from adafruit_display_text import label
+from adafruit_seesaw import seesaw, rotaryio, digitalio, neopixel
 
 import random
 
@@ -14,7 +15,7 @@ from rainbowio import colorwheel
 import board
 import displayio
 import gc
-import neopixel
+# import neopixel
 
 import json
 import time
@@ -29,6 +30,28 @@ from colors import COLORS
 from midi_notes import MIDI_NOTES
 import rgb_multiply
 from bmp_meters import MidiMeterBmp
+
+external_encoder = True
+
+seesaw = seesaw.Seesaw(board.I2C(), addr=0x36)
+
+seesaw_product = (seesaw.get_version() >> 16) & 0xFFFF
+print("Found product {}".format(seesaw_product))
+if seesaw_product != 4991:
+	print("Wrong firmware loaded?  Expected 4991")
+	external_encoder = False
+
+seesaw.pin_mode(24, seesaw.INPUT_PULLUP)
+ext_encoder_button = digitalio.DigitalIO(seesaw, 24)
+ext_encoder_button_held = False
+
+ext_encoder = rotaryio.IncrementalEncoder(seesaw)
+ext_last_position = None
+
+ext_pixel = neopixel.NeoPixel(seesaw, 6, 1)
+ext_pixel.brightness = 0.5
+
+
 
 # def color_brightness(value):
 # 	return rgb_multiply.rgb_mult(0xFF000F, value*1.0/127.0)
@@ -250,8 +273,16 @@ while True:
 		macropad_mode = macropad_mode%macrocontroller.page_count+1
 
 		macropad.red_led = macropad.encoder_switch
+		for control in macrocontroller.controls:
+			if(control.momentary):
+				if(isinstance(control,KeyControl)):
+					release_event = EVENTS.KEY_RELEASE
+					release_msg = control.send(event_type=release_event)
+					if(release_msg is not None):
+						macropad.midi.send(ControlChange(release_msg.control, release_msg.value))
 		macrocontroller.init_page_config(macropad_mode-1)
 		#init_key_colors()
+		
 		init_display_meters()
 
 	if macropad.encoder_switch_debounced.released:
@@ -302,8 +333,33 @@ while True:
 	# END ENCODER EVENT HANDLER
 	################################################################
 
+	################################################################
+	# EXTERNAL ENCODER EVENT HANDLER
+	################################################################
+	ext_position = ext_encoder.position
+
+	if ext_position != ext_last_position:
+		ext_last_position = ext_position
+		ext_color = rgb_multiply.rgb_mult(COLORS["purple"], abs(ext_position)%255/255.0)
+		ext_pixel.fill(ext_color)
+		print("Position: {}".format(abs(ext_position)%255))
+
+
+	if not ext_encoder_button.value and not ext_encoder_button_held:
+		ext_encoder_button_held = True
+		print("Button pressed")
+
+	if ext_encoder_button.value and ext_encoder_button_held:
+		ext_encoder_button_held = False
+		print("Button released")
+
+	################################################################
+	# END EXTERNAL ENCODER EVENT HANDLER
+	################################################################
+
+
 	# draw screen and update key colors
-	if(event_queue and time.monotonic()-prev_gfx_update > MACROPAD_FRAME_TIME and MACROPAD_DISPLAY_METERS):
+	if(event_queue and time.monotonic()-prev_gfx_update > MACROPAD_FRAME_TIME):
 		#print(event_queue)
 		# draw queued messages
 		loop_last_action = time.monotonic()
