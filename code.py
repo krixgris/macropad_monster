@@ -52,7 +52,7 @@ if(external_encoder):
 		ext_encoder = rotaryio.IncrementalEncoder(seesaw)
 		ext_last_position = None
 
-		ext_pixel = neopixel.NeoPixel(seesaw, 6, 1)
+		ext_pixel = neopixel.NeoPixel(seesaw, 6, 1) #,auto_write=False for manual update. performance boost if there's a lot of things to do each pass
 		ext_pixel.brightness = 0.5
 	except ValueError:
 		print("No external encoder connected. Check connection?\nProgram will run with external encoder disabled.")
