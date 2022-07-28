@@ -492,6 +492,7 @@ while True:
 		macropad.pixels.show()
 
 	if(external_encoder_midi_in_changed and time.monotonic()-prev_gfx_update > MACROPAD_FRAME_TIME):
+		loop_last_action = time.monotonic()
 		ext_color = rgb_multiply.rgb_mult(COLORS["purple"], external_encoder_midi_value*1.0/127.0)
 		ext_pixel.fill(ext_color)
 		external_encoder_midi_in_changed = False
