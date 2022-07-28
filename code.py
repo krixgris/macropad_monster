@@ -413,17 +413,20 @@ while True:
 					macropad.midi.send(ControlChange(external_encoder_midi_cc, external_encoder_midi_value))
 					ext_color = rgb_multiply.rgb_mult(COLORS["purple"], external_encoder_midi_value*1.0/127.0)
 					ext_pixel.fill(ext_color)
+					loop_last_action = time.monotonic()
 			# last_knob_pos = macropad.encoder
 			# copy paste from main encoder
 			
 		if not ext_encoder_button.value and not ext_encoder_button_held:
 			ext_encoder_button_held = True
 			macropad.midi.send(ControlChange(external_encoder_click_midi_cc, 127))
+			loop_last_action = time.monotonic()
 			# print("Button pressed")
 
 		if ext_encoder_button.value and ext_encoder_button_held:
 			ext_encoder_button_held = False
 			macropad.midi.send(ControlChange(external_encoder_click_midi_cc, 0))
+			loop_last_action = time.monotonic()
 			# print("Button released")
 
 	################################################################
