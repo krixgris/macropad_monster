@@ -34,6 +34,13 @@ from bmp_meters import MidiMeterBmp
 
 # testcode from learn.adafruit.com. create separeate module for encoder
 external_encoder = True
+external_encoder_midi_value = 0
+external_encoder_midi_prev_value = -1
+external_encoder_delta = 0
+external_encoder_last_time = 0
+external_encoder_midi_cc = 81
+external_encoder_click_midi_cc = 80
+external_encoder_midi_in_changed = False
 
 
 if(external_encoder):
@@ -50,10 +57,10 @@ if(external_encoder):
 		ext_encoder_button_held = False
 
 		ext_encoder = rotaryio.IncrementalEncoder(seesaw)
-		ext_last_position = None
+		ext_last_position = 0#None
 
 		ext_pixel = neopixel.NeoPixel(seesaw, 6, 1) #,auto_write=False for manual update. performance boost if there's a lot of things to do each pass
-		ext_pixel.brightness = 0.5
+		ext_pixel.brightness = MACROPAD_BRIGHTNESS
 	except ValueError:
 		print("No external encoder connected. Check connection?\nProgram will run with external encoder disabled.")
 		external_encoder = False
@@ -243,6 +250,17 @@ while True:
 			# this needs an 'are we in sync?' thing, or a pageswap=True (easier)
 			if(msg is not None and (True or control.delta_time_prev_queued>MACROPAD_FRAME_TIME*4)):
 				event_queue[control.id] = (msg.value,msg.event_type)
+		
+		elif(isinstance(midi_event, ControlChange) and midi_event.control in [external_encoder_midi_cc,external_encoder_click_midi_cc]):
+			if(midi_event.control == external_encoder_click_midi_cc):
+				pass
+			if(midi_event.control == external_encoder_midi_cc):
+				if(midi_event.value != external_encoder_midi_value):
+					external_encoder_midi_prev_value = external_encoder_midi_value
+					external_encoder_midi_value = midi_event.value
+					external_encoder_midi_in_changed = True
+
+
 
 	################################################################
 	# END OF MIDI RECEIVE
@@ -349,19 +367,64 @@ while True:
 		ext_position = ext_encoder.position
 
 		if ext_position != ext_last_position:
+			external_encoder_delta = ext_last_position-ext_position
 			ext_last_position = ext_position
-			ext_color = rgb_multiply.rgb_mult(COLORS["purple"], abs(ext_position)%5/20.0)
-			ext_pixel.fill(ext_color)
-			print("Position: {}".format(abs(ext_position)%255))
 
+			
+			# print("Position: {}".format(abs(ext_position)%255))
 
+			# copy paste from main encoder
+			external_encoder_midi_prev_value = external_encoder_midi_value
+			# knob_pos = macropad.encoder  # read encoder
+			# knob_delta = knob_pos - last_knob_pos  # compute knob_delta since last read
+			# last_knob_pos = knob_pos  # save new reading
+			external_encoder_delta_time = 0
+			external_encoder_delta_time = time.monotonic()-external_encoder_last_time
+			# print(f"{external_encoder_delta_time=},{external_encoder_midi_value=},{external_encoder_midi_prev_value=},{external_encoder_delta=}")
+			# print(f"{external_encoder_midi_value=}")
+			# print(f"{external_encoder_midi_prev_value=}")
+			if(0.100<external_encoder_delta_time<=0.200):
+				# print("speed 2")
+				external_encoder_delta = external_encoder_delta * 2
+			elif(0.0500<external_encoder_delta_time<=0.100):
+				# # print("speed 3")
+				external_encoder_delta = external_encoder_delta * 3
+			elif(0.0250<external_encoder_delta_time<=0.0500):
+				# print("speed 4")
+				external_encoder_delta = external_encoder_delta * 4
+			elif(external_encoder_delta_time<=0.0250):
+				# print("speed 5")
+				external_encoder_delta = external_encoder_delta * 5
+
+			# print(f"{external_encoder_delta_time=},{external_encoder_midi_value=},{external_encoder_midi_prev_value=},{external_encoder_delta=}")
+
+			if(external_encoder_midi_value + external_encoder_delta == external_encoder_midi_value):
+				# print("pass delta val = no change")
+				pass
+			else:
+				external_encoder_midi_value += external_encoder_delta
+				external_encoder_midi_value = 127 if external_encoder_midi_value > 127 else external_encoder_midi_value
+				external_encoder_midi_value = 0 if external_encoder_midi_value < 0 else external_encoder_midi_value
+				if(external_encoder_midi_value == external_encoder_midi_prev_value):
+					# print("pass val = prev")
+					pass
+				else:
+					external_encoder_last_time = time.monotonic()
+					macropad.midi.send(ControlChange(external_encoder_midi_cc, external_encoder_midi_value))
+					ext_color = rgb_multiply.rgb_mult(COLORS["purple"], external_encoder_midi_value*1.0/127.0)
+					ext_pixel.fill(ext_color)
+			# last_knob_pos = macropad.encoder
+			# copy paste from main encoder
+			
 		if not ext_encoder_button.value and not ext_encoder_button_held:
 			ext_encoder_button_held = True
-			print("Button pressed")
+			macropad.midi.send(ControlChange(external_encoder_click_midi_cc, 127))
+			# print("Button pressed")
 
 		if ext_encoder_button.value and ext_encoder_button_held:
 			ext_encoder_button_held = False
-			print("Button released")
+			macropad.midi.send(ControlChange(external_encoder_click_midi_cc, 0))
+			# print("Button released")
 
 	################################################################
 	# END EXTERNAL ENCODER EVENT HANDLER
@@ -428,9 +491,17 @@ while True:
 		macropad.display.refresh()
 		macropad.pixels.show()
 
+	if(external_encoder_midi_in_changed and time.monotonic()-prev_gfx_update > MACROPAD_FRAME_TIME):
+		ext_color = rgb_multiply.rgb_mult(COLORS["purple"], external_encoder_midi_value*1.0/127.0)
+		ext_pixel.fill(ext_color)
+		external_encoder_midi_in_changed = False
+		prev_gfx_update = time.monotonic()
+
 	# screen saver
 	if(loop_start_time-loop_last_action>MACROPAD_SLEEP_KEYS):
 		macropad.pixels.brightness = 0
+		if(external_encoder):
+			ext_pixel.brightness = 0
 		macropad_sleep_keys = True
 		group.hidden = 1
 		macropad.display.refresh()
@@ -438,6 +509,8 @@ while True:
 
 	elif(macropad_sleep_keys and loop_start_time-loop_last_action<MACROPAD_SLEEP_KEYS):
 		macropad.pixels.brightness = MACROPAD_BRIGHTNESS
+		if(external_encoder):
+			ext_pixel.brightness = MACROPAD_BRIGHTNESS
 		macropad_sleep_keys = False
 		group.hidden = 0
 		macropad.display.refresh()
