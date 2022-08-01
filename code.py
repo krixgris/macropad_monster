@@ -130,7 +130,7 @@ text_area.y = 10
 text_area.line_spacing = 0.75
 display_text_wrap = 10
 display_text_scale = 2
-print(text_area._line_spacing)
+# print(text_area._line_spacing)
 text_area.scale = 2
 display.show(text_area)
 
