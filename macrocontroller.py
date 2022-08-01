@@ -407,6 +407,7 @@ class MacroController:
 	defined_cc = set()
 	"""Implement cc_set to check for existance"""
 	macropad = MacroPad()
+	macropad.midi._in_buf_size = 50 # default is 30, but this caps our max length for sysex, or rather discards them
 	def __init__(self,macrocontroller_config):
 		self._config = MacroControlConfiguration(macrocontroller_config)
 

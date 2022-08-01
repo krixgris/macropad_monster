@@ -4,9 +4,11 @@ from adafruit_midi.control_change import ControlChange
 from adafruit_midi.note_off import NoteOff
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.pitch_bend import PitchBend
+from adafruit_midi.system_exclusive import SystemExclusive
 
 import terminalio
 from adafruit_display_text import label
+from adafruit_display_text import wrap_text_to_lines
 from adafruit_seesaw import seesaw, rotaryio, digitalio, neopixel
 
 import random
@@ -30,6 +32,8 @@ from colors import COLORS
 from midi_notes import MIDI_NOTES
 import rgb_multiply
 from bmp_meters import MidiMeterBmp
+
+DISPLAY_METERS_ACTIVE = False
 
 
 # testcode from learn.adafruit.com. create separeate module for encoder
@@ -117,7 +121,22 @@ MACRO_PAD_DEFAULT_PAGE = "1"
 # 	macrocontroller.init_page_config(page_index)
 
 macropad = macrocontroller.macropad
+text_display = macropad.display_text()
 
+text = "Init..."
+text_area = label.Label(terminalio.FONT, text=text)
+text_area.x = 0
+text_area.y = 10
+text_area.line_spacing = 0.75
+display_text_wrap = 10
+display_text_scale = 2
+print(text_area._line_spacing)
+text_area.scale = 2
+display.show(text_area)
+
+
+# text_display.show()
+# macropad.display.refresh()
 #pixels = neopixel.NeoPixel()
 
 
@@ -215,6 +234,30 @@ while True:
 	midi_event = macropad.midi.receive()
 	# returns None when buffer is empty
 	if midi_event is not None:
+		# handle sysex
+		if (isinstance(midi_event, SystemExclusive) and not DISPLAY_METERS_ACTIVE):
+			sysex_name = midi_event.data[2:].decode('utf-8')
+			# print(sysex_name)
+			# track_name = sysex_name
+			# macropad.display.refresh()
+			if(len(sysex_name)>20):
+				text_area.scale = 2
+			else:
+				text_area.scale = display_text_scale
+			if(sysex_name == ''):
+				sysex_name = 'No track selected..'
+			# print(wrap_text_to_lines(sysex_name,display_text_wrap))
+			wrapped_text = wrap_text_to_lines(sysex_name,display_text_wrap)
+			row1,*row2 = wrapped_text
+			row2 = ''.join(row2)
+			text_area.text = row1 + '\n' + row2
+			
+			macropad.display.show(text_area)
+			macropad.display.refresh()
+			
+			# text_display.show()
+			
+
 		# handle NoteOn
 		if isinstance(midi_event, NoteOn):
 			macropad.stop_tone()
@@ -463,7 +506,8 @@ while True:
 			# keypad event, midi key event
 			if(source in EVENT_TYPES.KEY_EVENTS):
 				if(meter_update):
-					bitmap.blit(control_id*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
+					if(DISPLAY_METERS_ACTIVE):
+						bitmap.blit(control_id*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
 					event_color = control.off_color if v == 0 else rgb_multiply.rgb_mult(control.on_color, v*1.0/127.0)
 					# event_color = control.off_color if v == 0 else control.on_colors[v]
 					# event_color = control.off_color if v == 0 else all_reds[v]
@@ -474,14 +518,14 @@ while True:
 
 			# encoder event, midi encoder event
 			elif(source in EVENT_TYPES.ENCODER_EVENTS):
-				if(meter_update):
+				if(meter_update and DISPLAY_METERS_ACTIVE):
 					bitmap.blit(control_id*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
 			# enc click event, midi enc click event
 			elif(source in EVENT_TYPES.ENCODER_CLICK_EVENTS):
-				if(meter_update):
+				if(meter_update and DISPLAY_METERS_ACTIVE):
 					bitmap.blit(control_id*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
 			# reset meters
-			elif(source in [EVENTS.INIT_MTR]):
+			elif(source in [EVENTS.INIT_MTR] and DISPLAY_METERS_ACTIVE):
 				for i in range(0,DISPLAY_METER_COUNT):
 					# if(meter_update):
 					# bitmap.blit(i*DISPLAY_METER_WIDTH_SPACE+DISPLAY_METER_SPACING,0,midi_meter.midi_value[v])
@@ -491,7 +535,8 @@ while True:
 		# clear queue 
 		prev_gfx_update = time.monotonic()
 		# this can update all blitting since they are now all the same..
-		macropad.display.refresh()
+		if(DISPLAY_METERS_ACTIVE):
+			macropad.display.refresh()
 		macropad.pixels.show()
 
 	if(external_encoder_midi_in_changed and time.monotonic()-prev_gfx_update > MACROPAD_FRAME_TIME):
@@ -508,6 +553,7 @@ while True:
 			ext_pixel.brightness = 0
 		macropad_sleep_keys = True
 		group.hidden = 1
+		text_area.hidden = 1
 		macropad.display.refresh()
 		macropad.pixels.show()
 
@@ -517,6 +563,7 @@ while True:
 			ext_pixel.brightness = MACROPAD_BRIGHTNESS
 		macropad_sleep_keys = False
 		group.hidden = 0
+		text_area.hidden = 0
 		macropad.display.refresh()
 		macropad.pixels.show()
 ################################################################
