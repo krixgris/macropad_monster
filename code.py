@@ -33,7 +33,13 @@ from midi_notes import MIDI_NOTES
 import rgb_multiply
 from bmp_meters import MidiMeterBmp
 
+from midi_to_volume import MIDI_TO_VOLUME
+
+
+
 DISPLAY_METERS_ACTIVE = False
+
+display_update_text = False
 
 
 # testcode from learn.adafruit.com. create separeate module for encoder
@@ -124,7 +130,13 @@ macropad = macrocontroller.macropad
 text_display = macropad.display_text()
 
 text = "Init..."
+text_name = ''
+text_vol = ''
 text_area = label.Label(terminalio.FONT, text=text)
+text_area_vol = label.Label(terminalio.FONT, text="0.0")
+text_area_vol.x = 0
+text_area_vol.y = 50
+
 text_area.x = 0
 text_area.y = 10
 text_area.line_spacing = 0.75
@@ -132,7 +144,13 @@ display_text_wrap = 10
 display_text_scale = 2
 # print(text_area._line_spacing)
 text_area.scale = 2
-display.show(text_area)
+text_area_vol.scale = 2
+text_group = displayio.Group()
+text_group.append(text_area)
+text_group.append(text_area_vol)
+
+# display.show(text_area)
+# display.show(text_area_vol)
 
 
 # text_display.show()
@@ -203,6 +221,7 @@ black_palette[1] = 0x000000
 tile_grid = displayio.TileGrid(bitmap, pixel_shader=palette)
 group = displayio.Group()
 group.append(tile_grid)
+
 display.show(group)
 
 print(f"{display.width=},{display.height=}")
@@ -221,6 +240,9 @@ gc.collect()
 
 print(f"Starting loop: {gc.mem_free()=}")
 
+
+temp_sysex_counter = 0
+sysex_override = False
 ################################################################
 # START OF MAIN LOOP
 ################################################################
@@ -240,20 +262,30 @@ while True:
 			# print(sysex_name)
 			# track_name = sysex_name
 			# macropad.display.refresh()
-			if(len(sysex_name)>20):
-				text_area.scale = 2
-			else:
-				text_area.scale = display_text_scale
-			if(sysex_name == ''):
-				sysex_name = 'No track selected..'
-			# print(wrap_text_to_lines(sysex_name,display_text_wrap))
-			wrapped_text = wrap_text_to_lines(sysex_name,display_text_wrap)
-			row1,*row2 = wrapped_text
-			row2 = ''.join(row2)
-			text_area.text = row1 + '\n' + row2
-			
-			macropad.display.show(text_area)
-			macropad.display.refresh()
+
+			if(sysex_name[0:2] == 'nm'):
+				text_name = sysex_name[2:]
+				if(len(text_name)>20):
+					text_area.scale = 2
+				else:
+					text_area.scale = display_text_scale
+				if(text_name == ''):
+					text_name = 'No track selected..'
+				# print(wrap_text_to_lines(sysex_name,display_text_wrap))
+				wrapped_text = wrap_text_to_lines(text_name,display_text_wrap)
+				row1,*row2 = wrapped_text
+				row2 = ''.join(row2)
+				text_area.text = row1 + '\n' + row2
+			if(sysex_name[0:2] == 'vl'):
+				text_vol = sysex_name[2:]
+				sysex_override = True
+				# print(f"'{text_vol}',")
+				# text_area_vol.text = text_vol
+
+			# macropad.display.show(text_area)
+			display_update_text = True
+			# macropad.display.show(text_group)
+			# macropad.display.refresh()
 			
 			# text_display.show()
 			
@@ -278,6 +310,9 @@ while True:
 			if(isinstance(control, EncoderControl)):
 				event_type = EVENTS.MIDI_ENCODER_TURN
 				msg = control.receive(midi_event.value, event_type=event_type)
+				text_vol = MIDI_TO_VOLUME[midi_event.value]
+				display_update_text = True
+				# print(f"{text_vol=}")
 			# Encoder click CC
 			if(isinstance(control, EncoderClickControl)):
 				event_type = EVENTS.MIDI_ENCLICK
@@ -539,11 +574,33 @@ while True:
 			macropad.display.refresh()
 		macropad.pixels.show()
 
-	if(external_encoder_midi_in_changed and time.monotonic()-prev_gfx_update > MACROPAD_FRAME_TIME):
+	elif(external_encoder_midi_in_changed and time.monotonic()-prev_gfx_update > MACROPAD_FRAME_TIME):
 		loop_last_action = time.monotonic()
 		ext_color = rgb_multiply.rgb_mult(COLORS["purple"], external_encoder_midi_value*1.0/127.0)
 		ext_pixel.fill(ext_color)
 		external_encoder_midi_in_changed = False
+		prev_gfx_update = time.monotonic()
+
+	elif(display_update_text and time.monotonic()-prev_gfx_update > MACROPAD_FRAME_TIME):
+		loop_last_action = time.monotonic()
+
+		if(len(text_name)>20):
+			text_area.scale = 2
+		else:
+			text_area.scale = display_text_scale
+		if(text_name == ''):
+			text_name = 'No track selected..'
+		# print(wrap_text_to_lines(sysex_name,display_text_wrap))
+		wrapped_text = wrap_text_to_lines(text_name,display_text_wrap)
+		row1,*row2 = wrapped_text
+		row2 = ''.join(row2)
+		text_area.text = row1 + '\n' + row2
+
+		text_area_vol.text = text_vol
+
+		macropad.display.show(text_group)
+		macropad.display.refresh()
+		display_update_text = False
 		prev_gfx_update = time.monotonic()
 
 	# screen saver
@@ -553,7 +610,7 @@ while True:
 			ext_pixel.brightness = 0
 		macropad_sleep_keys = True
 		group.hidden = 1
-		text_area.hidden = 1
+		text_group.hidden = 1
 		macropad.display.refresh()
 		macropad.pixels.show()
 
@@ -563,7 +620,7 @@ while True:
 			ext_pixel.brightness = MACROPAD_BRIGHTNESS
 		macropad_sleep_keys = False
 		group.hidden = 0
-		text_area.hidden = 0
+		text_group.hidden = 0
 		macropad.display.refresh()
 		macropad.pixels.show()
 ################################################################
