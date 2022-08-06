@@ -433,6 +433,10 @@ while True:
 		if(msg is not None):
 			event_queue[control.id] = (msg.value,msg.event_type)
 			macropad.midi.send(ControlChange(msg.control, msg.value))
+			if(msg.value == 101): #cubase ism with volume..
+				msg.value = 100
+			text_vol = MIDI_TO_VOLUME[msg.value]
+			display_update_text = True
 
 	################################################################
 	# END ENCODER EVENT HANDLER

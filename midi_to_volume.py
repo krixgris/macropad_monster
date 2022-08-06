@@ -101,7 +101,7 @@ MIDI_TO_VOLUME = ['-oo',
 '-0.35',
 '-0.19',
 '0.00',
-'0.30',
+'0.00',#Cubase is silly with 101 for volume, and skips it..
 '0.56',
 '0.86',
 '1.15',
